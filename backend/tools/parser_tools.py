@@ -1,8 +1,7 @@
-# app/tools/parser_tools.py
 from pypdf import PdfReader
 from agno.tools import tool
 from sqlalchemy import text
-from app.storage.structured_store import engine
+from storage.structured_store import engine
 import uuid
 
 @tool

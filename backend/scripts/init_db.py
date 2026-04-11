@@ -1,4 +1,4 @@
-from app.storage.structured_store import engine, metadata
+from storage.structured_store import engine, metadata
 
 def init_db():
     metadata.create_all(engine)

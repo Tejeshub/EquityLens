@@ -2,7 +2,7 @@ import os
 import hashlib
 import requests
 from datetime import datetime
-from app.config import USER_AGENT
+from config import USER_AGENT
 
 RAW_DATA_DIR = "./raw_data"
 os.makedirs(RAW_DATA_DIR, exist_ok=True)

@@ -1,4 +1,4 @@
-from app.tools.verification_tools import verify_metric
+from tools.verification_tools import verify_metric
 import re
 
 def track_guidance(company: str, transcript_chunks: list):

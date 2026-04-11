@@ -1,7 +1,7 @@
-from app.tools.discovery_tools import find_pdf_links
-from app.tools.download_tools import ingest_raw_document
-from app.tools.parser_tools import parse_pdf_preview, insert_financial_metric
-from app.tools.chroma_tools import embed_text_chunks
+from tools.discovery_tools import find_pdf_links
+from tools.download_tools import ingest_raw_document
+from tools.parser_tools import parse_pdf_preview, insert_financial_metric
+from tools.chroma_tools import embed_text_chunks
 import re
 
 def run_ingestion(company: str, ir_page_url: str):

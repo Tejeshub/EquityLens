@@ -1,6 +1,5 @@
-# app/agents/fundamental_debater.py
-from app.agents.grok_client import call_grok
-from app.tools.verification_tools import verify_metric
+from agents.grok_client import call_grok
+from tools.verification_tools import verify_metric
 
 def fundamental_debate(company: str) -> dict:
     # Fetch key metrics

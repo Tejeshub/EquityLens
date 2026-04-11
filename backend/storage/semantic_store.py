@@ -1,6 +1,6 @@
 import chromadb
 from chromadb.utils import embedding_functions
-from app.config import CHROMA_PERSIST_DIR
+from config import CHROMA_PERSIST_DIR
 
 client = chromadb.PersistentClient(path=CHROMA_PERSIST_DIR)
 collection_name = "equity_chunks"

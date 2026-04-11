@@ -1,4 +1,4 @@
-from app.agents.grok_client import call_grok
+from agents.grok_client import call_grok
 import json
 
 def debate_coordinator(company: str, fundamental_out, sentiment_out, alt_out, threshold=0.7) -> dict:
