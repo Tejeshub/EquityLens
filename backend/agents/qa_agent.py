@@ -1,37 +1,59 @@
+import google.generativeai as genai
+from config import GEMINI_API_KEY, QA_MODEL
 from tools.chroma_tools import retrieve_evidence
 from tools.verification_tools import verify_metric
-from config import QA_MODEL
-# For Gemini or Grok
-import google.generativeai as genai
-import os
+import json
 
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+genai.configure(api_key=GEMINI_API_KEY)
 
 def answer_with_citations(question: str, company: str = None) -> tuple:
-    # Retrieve semantic chunks
+    # Step 1: Retrieve relevant chunks from ChromaDB
     evidence = retrieve_evidence(question, n_results=5)
     if not evidence["documents"]:
         return "I cannot verify that claim from available sources.", []
     
-    # Verify any numeric claim using structured DB
-    # (simplified: we assume LLM will check)
-    prompt = f"""
-    Question: {question}
-    Company: {company if company else "any"}
-    Retrieved evidence: {evidence['documents']}
+    # Step 2: Build context from retrieved chunks
+    context_parts = []
+    citations_meta = []
+    for i, (doc, meta) in enumerate(zip(evidence["documents"], evidence["metadatas"])):
+        source = meta.get("source", "unknown")
+        page = meta.get("page", "unknown")
+        context_parts.append(f"[{i+1}] {doc}\nSource: {source}, page {page}")
+        citations_meta.append({"document": source, "page": page, "index": i+1})
     
-    Answer only using the evidence. For each numerical fact, cite the source document and page from metadata.
-    If the evidence does not contain the answer, say: "I cannot verify that claim from available sources."
-    """
+    context = "\n\n".join(context_parts)
+    
+    # Step 3: LLM prompt with strict citation requirement
+    prompt = f"""
+You are an equity research Q&A assistant. Answer the user's question using ONLY the provided context.
+For every factual statement, cite the source using its index number like [1] or [2] at the end of the sentence.
+If the context does NOT contain the answer, say exactly: "I cannot verify that claim from available sources."
+
+Question: {question}
+Company: {company if company else "any"}
+
+Context:
+{context}
+
+Answer:
+"""
+    
+    # Step 4: Call LLM (Gemini or Grok)
     if QA_MODEL == "gemini":
         model = genai.GenerativeModel("gemini-2.0-flash")
         response = model.generate_content(prompt)
         answer = response.text
     else:
-        # use Grok
         from agents.grok_client import call_grok
         answer = call_grok([{"role": "user", "content": prompt}])
     
-    # Extract citations from metadata (simplified)
-    citations = [{"document": m.get("source", "unknown"), "page": m.get("page")} for m in evidence["metadatas"]]
+    # Step 5: Extract citations used in answer (optional: parse indices)
+    # For simplicity, return all retrieved citations
+    citations = []
+    for meta in citations_meta:
+        citations.append({
+            "document": meta["document"],
+            "page": meta["page"]
+        })
+    
     return answer, citations

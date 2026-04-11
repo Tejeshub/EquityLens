@@ -9,10 +9,64 @@ from agents.alt_debater import alt_debate
 from agents.coordinator import debate_coordinator
 from agents.comparator import compare_companies
 from agents.qa_agent import answer_with_citations
+from scraper import ScreenerScraper
+from storage.structured_store import engine as db_engine
+from storage.semantic_store import client as chroma_client
 import asyncio
 
 app = FastAPI(title="Equity Research AI Agent", description="Multi-agent debate system for Indian equities")
 app.add_middleware(CORSMiddleware, allow_origins=["*"])
+
+def scrape_screener_data(company_name: str, ticker: str = None):
+    """
+    Scrape Screener.in for structured financial data.
+    
+    Args:
+        company_name: Full company name (for logging)
+        ticker: Company ticker (for Screener lookup). If None, uses company_name
+    
+    Returns:
+        {ok: bool, inserted_metrics: int, embedded_chunks: int, error: str}
+    """
+    print(f"scrape_screener_data: start for {company_name} (ticker={ticker})")
+    try:
+        # Use ticker if provided, otherwise try company_name as fallback
+        lookup_ticker = ticker if ticker else company_name
+        
+        # Initialize scraper with DB clients for direct insertion
+        scraper = ScreenerScraper(lookup_ticker, db_engine=db_engine, chroma_client=chroma_client)
+        result = scraper.scrape_all()
+        
+        # Count inserted metrics and chunks
+        total_inserted = 0
+        total_chunks = 0
+        
+        for table_name, insert_result in result.get("db_insertion_results", {}).items():
+            db_result = insert_result.get("db_result", {})
+            chroma_result = insert_result.get("chroma_result", {})
+            
+            if "inserted" in db_result:
+                total_inserted += db_result["inserted"]
+            if "count" in chroma_result:
+                total_chunks += chroma_result["count"]
+        
+        print(f"scrape_screener_data: end - inserted {total_inserted} metrics, {total_chunks} chunks")
+        return {
+            "ok": True,
+            "inserted_metrics": total_inserted,
+            "embedded_chunks": total_chunks,
+            "error": None
+        }
+    except Exception as e:
+        print(f"scrape_screener_data: ERROR - {type(e).__name__}: {str(e)}")
+        # Non-fatal error - return info but don't block pipeline
+        return {
+            "ok": False,
+            "inserted_metrics": 0,
+            "embedded_chunks": 0,
+            "error": str(e)
+        }
+
 
 @app.post("/analyze", response_model=EquityResearchResponse)
 async def analyze(request: EquityResearchRequest):
@@ -21,7 +75,15 @@ async def analyze(request: EquityResearchRequest):
     guidance_entries = []
     try:
         for company in request.companies:
-            # 1. Ingest (skip if no IR url)
+            # 0. Scrape Screener.in for structured financial data (direct DB + ChromaDB insertion)
+            print(f"analyze: scraping Screener for {company.name}")
+            screener_result = scrape_screener_data(company.name, ticker=company.screener_id)
+            if screener_result["ok"]:
+                print(f"✅ Screener: inserted {screener_result['inserted_metrics']} metrics, {screener_result['embedded_chunks']} chunks")
+            else:
+                print(f"⚠️ Screener scrape warning: {screener_result['error']}")
+            
+            # 1. Ingest PDFs from IR page (skip if no IR url)
             if company.ir_page_url:
                 ingest_result = run_ingestion(company.name, company.ir_page_url)
             else:

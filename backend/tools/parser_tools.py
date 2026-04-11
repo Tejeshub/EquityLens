@@ -75,3 +75,143 @@ def insert_financial_metric(company_name: str, quarter: str, metric_name: str, m
     except Exception as e:
         print(f"insert_financial_metric: ERROR - {type(e).__name__}: {str(e)}")
         raise
+
+def parse_table_to_metrics_records(table_dict: dict, table_name: str, company: str, source_url: str, quarter_hints: dict = None) -> list:
+    """
+    Parse a Screener table into financial metric records.
+    
+    Args:
+        table_dict: {'headers': [...], 'rows': {label: [val1, val2, ...]}}
+        table_name: 'quarterly_results', 'profit_loss', 'balance_sheet', 'cash_flow', 'ratios'
+        company: Company ticker/name
+        source_url: Source URL for citation
+        quarter_hints: Dict mapping column index to quarter (e.g., {0: 'Q3FY24', 1: 'Q2FY24'})
+    
+    Returns:
+        List of metric records: {company_name, quarter, metric_name, metric_value, unit, source_document_id, confidence}
+    """
+    print(f"parse_table_to_metrics_records: start for {table_name} {company}")
+    records = []
+    
+    if not table_dict or not table_dict.get("rows"):
+        print(f"parse_table_to_metrics_records: empty table, skipping")
+        return records
+    
+    headers = table_dict.get("headers", [])
+    rows = table_dict.get("rows", {})
+    
+    # Default unit mappings by table type
+    unit_map = {
+        "quarterly_results": "Crore",
+        "profit_loss": "Crore",
+        "balance_sheet": "Crore",
+        "cash_flow": "Crore",
+        "ratios": "%"  # Most financial ratios are percentages
+    }
+    default_unit = unit_map.get(table_name, "")
+    
+    for metric_name, values in rows.items():
+        # Skip rows that are clearly headers or non-metric rows
+        if metric_name.lower() in ["", "period", "date", "quarter"]:
+            continue
+        
+        # Process each value in the row (corresponding to headers/quarters)
+        for col_idx, value_str in enumerate(values):
+            try:
+                # Try to convert to float
+                if not value_str or value_str.strip() == "":
+                    continue
+                
+                # Strip commas and convert to float
+                value_str_clean = str(value_str).strip().replace(",", "")
+                metric_value = float(value_str_clean)
+                
+                # Determine quarter from hints or column index
+                quarter = "Unknown"
+                if quarter_hints and col_idx in quarter_hints:
+                    quarter = quarter_hints[col_idx]
+                elif col_idx < len(headers):
+                    # Try to extract quarter from header (e.g., "Q3FY24", "2024-Q3", etc.)
+                    header_text = headers[col_idx].strip()
+                    quarter = header_text if header_text else f"Col{col_idx}"
+                
+                # Create metric record
+                record = {
+                    "company_name": company,
+                    "quarter": quarter,
+                    "metric_name": metric_name.strip(),
+                    "metric_value": metric_value,
+                    "unit": default_unit,
+                    "source_document_id": source_url,
+                    "confidence": 0.95  # High confidence for Screener primary source
+                }
+                records.append(record)
+                
+            except (ValueError, TypeError):
+                # Non-numeric value, skip silently
+                continue
+    
+    print(f"parse_table_to_metrics_records: end - created {len(records)} records")
+    return records
+
+def batch_insert_financial_metrics(db_engine, metrics_list: list) -> dict:
+    """
+    Batch insert financial metrics into PostgreSQL.
+    
+    Args:
+        db_engine: SQLAlchemy engine
+        metrics_list: List of metric dicts {company_name, quarter, metric_name, metric_value, unit, source_document_id, confidence}
+    
+    Returns:
+        {inserted: int, skipped: int, errors: list}
+    """
+    print(f"batch_insert_financial_metrics: start with {len(metrics_list)} records")
+    inserted = 0
+    skipped = 0
+    errors = []
+    
+    if not metrics_list:
+        print(f"batch_insert_financial_metrics: empty list, skipping")
+        return {"inserted": 0, "skipped": 0, "errors": []}
+    
+    sql = text("""
+    INSERT INTO financials_quarterly (id, company_name, quarter, metric_name, metric_value, unit, source_document_id, confidence)
+    VALUES (:id, :company_name, :quarter, :metric_name, :metric_value, :unit, :source_document_id, :confidence)
+    """)
+    
+    try:
+        with db_engine.begin() as conn:
+            for metric in metrics_list:
+                try:
+                    # Validate metric before insert
+                    if not metric.get("company_name") or not metric.get("metric_name"):
+                        skipped += 1
+                        continue
+                    
+                    # Check if metric_value is valid
+                    if metric.get("metric_value") is None:
+                        skipped += 1
+                        continue
+                    
+                    doc_id = str(uuid.uuid4())
+                    conn.execute(sql, {
+                        "id": doc_id,
+                        "company_name": metric["company_name"],
+                        "quarter": metric.get("quarter", "Unknown"),
+                        "metric_name": metric["metric_name"],
+                        "metric_value": metric["metric_value"],
+                        "unit": metric.get("unit", ""),
+                        "source_document_id": metric.get("source_document_id", ""),
+                        "confidence": metric.get("confidence", 1.0),
+                    })
+                    inserted += 1
+                except Exception as e:
+                    skipped += 1
+                    errors.append(f"Metric {metric.get('metric_name')}: {str(e)}")
+                    print(f"batch_insert_financial_metrics: error for metric {metric}: {str(e)}")
+        
+        print(f"batch_insert_financial_metrics: end - inserted {inserted}, skipped {skipped}, errors {len(errors)}")
+        return {"inserted": inserted, "skipped": skipped, "errors": errors}
+    except Exception as e:
+        print(f"batch_insert_financial_metrics: ERROR - {type(e).__name__}: {str(e)}")
+        return {"inserted": inserted, "skipped": skipped, "errors": [str(e)]}

@@ -50,7 +50,7 @@ def run_ingestion(company: str, ir_page_url: str):
                 print(f"run_ingestion: calling embed_text_chunks")
                 chunks = [{"text": p["text"], "metadata": {"company": company, "source": file_path, "page": p["page"]}} for p in preview["pages"]]
                 embed_text_chunks(chunks)
-                print(f"run_ingestion: embed_text_chunks completed")
+                print(f"run_ingestion: embed_text_chunks completed {len(chunks)} chunks embedded {chunks[0]['metadata']}")
                 processed_count += 1
             except Exception as e:
                 print(f"run_ingestion: ERROR processing PDF - {type(e).__name__}: {str(e)}")
