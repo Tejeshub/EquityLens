@@ -59,7 +59,7 @@ def alt_debate(company: str) -> dict:
                 "reasoning": "API response was empty"
             }
         
-        print(f"alt_debate: parsing response")
+        print(f"alt_debate: parsing response : {response[:200]}")
         try:
             # Try to extract JSON if it's wrapped in markdown or text
             from agents.grok_client import extract_json_from_text
