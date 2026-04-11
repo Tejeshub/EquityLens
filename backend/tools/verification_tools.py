@@ -1,8 +1,6 @@
-from agno.tools import tool
 from sqlalchemy import text
 from storage.structured_store import engine
 
-@tool
 def verify_metric(company_name: str, quarter: str, metric_name: str) -> dict:
     sql = text("""
     SELECT company_name, quarter, metric_name, metric_value, unit, confidence

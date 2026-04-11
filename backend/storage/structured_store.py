@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, String, Float, Integer, DateTime, Text, MetaData, Table, insert
+from sqlalchemy import create_engine, Column, String, Float, Integer, DateTime, Text, MetaData, Table, insert, select
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
 import uuid
@@ -49,6 +49,16 @@ guidance_entries = Table(
 
 def insert_raw_document(raw_doc: dict) -> str:
     with engine.begin() as conn:
+        # Check if document already exists
+        existing = conn.execute(
+            select(raw_documents).where(raw_documents.c.id == raw_doc["raw_document_id"])
+        ).fetchone()
+        
+        if existing:
+            # Document already exists, return existing ID
+            return raw_doc["raw_document_id"]
+        
+        # Insert new document
         ins = raw_documents.insert().values(
             id=raw_doc["raw_document_id"],
             company=raw_doc["company"],

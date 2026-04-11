@@ -12,4 +12,4 @@ def compare_companies(company_list: list, metric: str = "revenue_growth") -> dic
     """
     df = pd.read_sql(sql, engine)
     ranking = df.to_dict(orient="records")
-    return {"metric": metric, "ranking": ranking}
+    return {"metric_name": metric, "ranking": ranking}
