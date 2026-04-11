@@ -8,9 +8,16 @@ def fundamental_debate(company: str) -> dict:
         # Fetch key metrics
         metrics = ["revenue", "pat", "roce", "debt_equity"]
         data = {}
+        print(f"fundamental_debate: fetching metrics for quarter Q3FY24")
         for m in metrics:
+            print(f"fundamental_debate:   fetching {m}...")
             res = verify_metric(company, "Q3FY24", m)
-            data[m] = res.get("metric_value") if res.get("ok") else None
+            if res.get("ok"):
+                data[m] = res.get("metric_value")
+                print(f"fundamental_debate:     {m} = {data[m]} {res.get('unit', '')}")
+            else:
+                data[m] = None
+                print(f"fundamental_debate:     {m} = NONE (error: {res.get('error', 'unknown')})")
         
         print(f"fundamental_debate: metrics retrieved - {data}")
         
