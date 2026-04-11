@@ -11,6 +11,7 @@ from agents.comparator import compare_companies
 from agents.qa_agent import answer_with_citations
 from rag import answer_with_rag
 from scraper import ScreenerScraper
+from earnings_scraper import EarningsScraper
 from storage.structured_store import engine as db_engine
 from storage.semantic_store import client as chroma_client
 import asyncio
@@ -69,6 +70,45 @@ def scrape_screener_data(company_name: str, ticker: str = None):
         }
 
 
+def scrape_earnings_for_ticker(company_name: str, ticker: str = None, year: int = None):
+    """
+    Scrape earnings call transcripts for all quarters.
+    
+    Args:
+        company_name: Full company name (for metadata)
+        ticker: Company ticker (for API lookup). If None, uses company_name
+        year: Year for earnings calls (defaults to current year from config)
+    
+    Returns:
+        {ok: bool, embedded_chunks: int, quarters: list, error: str}
+    """
+    print(f"scrape_earnings_for_ticker: start for {company_name} (ticker={ticker}, year={year})")
+    try:
+        # Use ticker if provided, otherwise try company_name as fallback
+        lookup_ticker = ticker if ticker else company_name
+        
+        # Initialize earnings scraper with ChromaDB client
+        scraper = EarningsScraper(lookup_ticker, year=year, chroma_client=chroma_client)
+        result = scraper.scrape_all_quarters(company_name)
+        
+        print(f"scrape_earnings_for_ticker: end - embedded {result.get('embedded_chunks', 0)} chunks, quarters {result.get('quarters_available', [])}")
+        return {
+            "ok": result.get("ok", False),
+            "embedded_chunks": result.get("embedded_chunks", 0),
+            "quarters": result.get("quarters_available", []),
+            "error": result.get("error", None)
+        }
+    except Exception as e:
+        print(f"scrape_earnings_for_ticker: ERROR - {type(e).__name__}: {str(e)}")
+        # Non-fatal error - return info but don't block pipeline
+        return {
+            "ok": False,
+            "embedded_chunks": 0,
+            "quarters": [],
+            "error": str(e)
+        }
+
+
 @app.post("/analyze", response_model=EquityResearchResponse)
 async def analyze(request: EquityResearchRequest):
     print("analyze: start")
@@ -83,6 +123,14 @@ async def analyze(request: EquityResearchRequest):
                 print(f"✅ Screener: inserted {screener_result['inserted_metrics']} metrics, {screener_result['embedded_chunks']} chunks")
             else:
                 print(f"⚠️ Screener scrape warning: {screener_result['error']}")
+            
+            # 0.5. Scrape earnings call transcripts (optional, non-blocking)
+            print(f"analyze: scraping earnings calls for {company.name}")
+            earnings_result = scrape_earnings_for_ticker(company.name, ticker=company.screener_id)
+            if earnings_result["ok"]:
+                print(f"✅ Earnings: embedded {earnings_result['embedded_chunks']} chunks, quarters {earnings_result['quarters']}")
+            else:
+                print(f"⚠️ Earnings scrape warning: {earnings_result['error']}")
             
             # 1. Ingest PDFs from IR page (skip if no IR url)
             if company.ir_page_url:

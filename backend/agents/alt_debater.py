@@ -41,11 +41,24 @@ def alt_debate(company: str) -> dict:
         
         {context}
         
-        Output JSON:
-        - "position": "bullish", "bearish", or "neutral"
-        - "confidence": integer 0-100
-        - "signals": list of interpretations (e.g., "increasing hiring suggests growth")
-        - "reasoning": short explanation
+                Output EXACTLY this JSON structure:
+        {{
+            "position": "bullish", "bearish", or "neutral",
+            "confidence": 0 to 100,
+            "signals": [
+                "Hiring +40% MoM indicates expansion [LinkedIn Jobs]",
+                "Traffic rank improved #5,400→#4,872 [SimilarWeb]",
+                "Promoter pledge 0% (vs 8.2% sector avg) [MCA]"
+            ],
+            "reasoning": "Multiple positive operational signals across hiring, traffic, and governance",
+            "source_lineage": [
+                "LinkedIn Jobs: 12 postings past 30 days",
+                "SimilarWeb: India rank #312",
+                "MCA Q3 FY26: Compliant filing"
+            ],
+            "timestamp": "2026-04-11",
+            "ps2_compliance": "All claims trace to provided context"
+        }}
         """
         print(f"alt_debate: calling call_grok")
         response = call_grok([{"role": "user", "content": prompt}])

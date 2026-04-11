@@ -50,6 +50,14 @@ def generate_chunks_from_table(table_dict: dict, table_type: str, company: str, 
     
     headers = table_dict.get("headers", [])
     rows = table_dict.get("rows", {})
+
+    # Normalize citation URL once to avoid duplicate /company/<ticker> segments.
+    base_url = str(source_url).strip().rstrip("/")
+    if "/company/" in base_url:
+        citation_url = base_url + "/"
+    else:
+        citation_url = f"{base_url}/company/{ticker}/"
+    citation_label = f"{table_type.replace('_', ' ').title()} table"
     
     # Create a comprehensive chunk with full table context
     if rows and headers:
@@ -85,7 +93,8 @@ def generate_chunks_from_table(table_dict: dict, table_type: str, company: str, 
                 "ticker": ticker,
                 "source": "screener.in",
                 "table_type": table_type,
-                "citation": f"{source_url}/company/{ticker} ({table_type.replace('_', ' ').title()} table)"
+                "citation": citation_url,
+                "citation_label": citation_label,
             }
             
             chunks.append({
