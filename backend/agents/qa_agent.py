@@ -39,13 +39,13 @@ Answer:
 """
     
     # Step 4: Call LLM (Gemini or Grok)
-    if QA_MODEL == "gemini":
-        model = genai.GenerativeModel("gemini-2.0-flash")
-        response = model.generate_content(prompt)
-        answer = response.text
-    else:
-        from agents.grok_client import call_grok
-        answer = call_grok([{"role": "user", "content": prompt}])
+    # if QA_MODEL == "gemini":
+    #     model = genai.GenerativeModel("gemini-2.5-flash")
+    #     response = model.generate_content(prompt)
+    #     answer = response.text
+    # else:
+    from agents.grok_client import call_grok
+    answer = call_grok([{"role": "user", "content": prompt}])
     
     # Step 5: Extract citations used in answer (optional: parse indices)
     # For simplicity, return all retrieved citations

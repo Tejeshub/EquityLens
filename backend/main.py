@@ -1,6 +1,6 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from models import EquityResearchRequest, EquityResearchResponse
+from models import AskRequest, AskResponse, AskCitation, RetrievedChunk, EquityResearchRequest, EquityResearchResponse
 from agents.ingestion_agent import run_ingestion
 from agents.guidance_tracker import track_guidance
 from agents.fundamental_debater import fundamental_debate
@@ -9,6 +9,7 @@ from agents.alt_debater import alt_debate
 from agents.coordinator import debate_coordinator
 from agents.comparator import compare_companies
 from agents.qa_agent import answer_with_citations
+from rag import answer_with_rag
 from scraper import ScreenerScraper
 from storage.structured_store import engine as db_engine
 from storage.semantic_store import client as chroma_client
@@ -96,13 +97,13 @@ async def analyze(request: EquityResearchRequest):
 
             # 3. Run three debaters in parallel (in thread pool since they're sync functions)
             loop = asyncio.get_event_loop()
-            print(f"analyze: running debaters in parallel")
+            print("analyze: running debaters in parallel")
             fund_out, sent_out, alt_out = await asyncio.gather(
                 loop.run_in_executor(None, fundamental_debate, company.name),
                 loop.run_in_executor(None, sentiment_debate, company.name),
                 loop.run_in_executor(None, alt_debate, company.name)
             )
-            print(f"analyze: debaters completed")
+            print("analyze: debaters completed")
 
             # 4. Coordinator produces final scorecard
             final = debate_coordinator(company.name, fund_out, sent_out, alt_out, request.debate_refinement_threshold)
@@ -121,12 +122,50 @@ async def analyze(request: EquityResearchRequest):
     finally:
         print("analyze: end")
 
-@app.post("/ask")
-async def ask(question: str, company: str = None):
+@app.post("/ask", response_model=AskResponse)
+async def ask(request: AskRequest):
     print("ask: start")
     try:
-        answer, citations = answer_with_citations(question, company)
-        return {"answer": answer, "citations": citations}
+        try:
+            rag_result = answer_with_rag(
+                question=request.question,
+                company=request.company,
+                top_k=request.top_k,
+            )
+
+            if rag_result.retrieval_count == 0:
+                raise RuntimeError("No retrieval results from RAG pipeline")
+
+            return AskResponse(
+                answer=rag_result.answer,
+                citations=[AskCitation(**c.model_dump()) for c in rag_result.citations],
+                retrieved_chunks=[RetrievedChunk(**c.model_dump()) for c in rag_result.retrieved_chunks],
+                retrieval_count=rag_result.retrieval_count,
+                fallback_used=False,
+                error=None,
+            )
+        except Exception as rag_err:
+            print(f"ask: RAG failed, using fallback - {type(rag_err).__name__}: {str(rag_err)}")
+            answer, citations = answer_with_citations(request.question, request.company)
+            mapped_citations = [
+                AskCitation(
+                    document=str(c.get("document", "unknown")),
+                    page=c.get("page"),
+                    excerpt="",
+                    source=str(c.get("document", "unknown")),
+                    table_type=None,
+                    index=None,
+                )
+                for c in citations
+            ]
+            return AskResponse(
+                answer=answer,
+                citations=mapped_citations,
+                retrieved_chunks=[],
+                retrieval_count=0,
+                fallback_used=True,
+                error=str(rag_err),
+            )
     finally:
         print("ask: end")
 
