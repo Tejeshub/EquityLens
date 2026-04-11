@@ -2,7 +2,7 @@ from sqlalchemy import create_engine, Column, String, Float, Integer, DateTime, 
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
 import uuid
-from app.config import POSTGRES_URL
+from config import POSTGRES_URL
 
 engine = create_engine(POSTGRES_URL)
 SessionLocal = sessionmaker(bind=engine)
