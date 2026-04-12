@@ -36,32 +36,73 @@ def alt_debate(company: str) -> dict:
         - MCA compliance risk: {mca_risk}
         """
         
-        prompt = f"""
-        You are an alternative data analyst. Use the following non-traditional signals to assess the company's health and outlook.
+        system_prompt = """You are a data-driven alternative analyst who identifies non-traditional signals of company health.
+
+Your alternative data analysis must be:
+1. Integrative: Connect alternative signals to fundamental insights (hiring → expansion potential, traffic → demand)
+2. Interpretive: Explain what each signal means for company trajectory, not just report raw metrics
+3. Comparative: Provide context - is the signal strong/weak relative to peers or historical levels?
+4. Forward-looking: What do these signals predict about near-term company performance?
+5. Transparent: Clearly state source, methodology, and limitations of each data point
+
+For each analysis:
+- Interpret hiring trends as leading indicator of management confidence/growth
+- Assess web traffic changes as proxy for demand, user engagement, competitive position
+- Evaluate governance/compliance signals for operational discipline
+- Synthesize all signals into coherent bull/bear case
+- Note data quality and limitations"""
+
+        user_prompt = f"""Conduct a comprehensive alternative data analysis for {company} using the following non-traditional signals:
+
+{context}
+
+Your analysis should include:
+
+1. Overall Position Assessment: Based on alternative data signals, is the company BULLISH, BEARISH, or NEUTRAL? Confidence 0-100?
+
+2. Hiring Trends Analysis:
+   - Jobs posted ({jobs_count} in past month): What does this volume signal about expansion plans?
+   - Month-over-month trend: Is it accelerating or slowing?
+   - Skill profiles: What roles are they hiring for (growth or maintenance)?
+   - What does this suggest about management confidence in future growth?
+
+3. Web Traffic Trends Analysis:
+   - Current rank: {traffic_rank} (lower is better)
+   - Recent trend: Is traffic improving or declining?
+   - Peer comparison: Is this strong/weak vs peers?
+   - What does traffic change indicate about customer demand/engagement?
+
+4. Governance & Compliance Signals:
+   - MCA filing status: {mca_risk}
+   - Promoter pledge levels: Low vs sector average
+   - What do these signals suggest about governance quality and insider confidence?
+
+5. Synthesis and Signals List:
+   List each alternative signal as a numbered finding:
+   - Signal 1: [Data point] indicates [interpretation]
+   - Signal 2: [Data point] indicates [interpretation]
+   - Signal 3: [Data point] indicates [interpretation]
+
+6. Detailed Reasoning (minimum 4-5 sentences):
+   - How do these signals collectively indicate company health?
+   - Which signals are most predictive of near-term performance?
+   - Any contradictions between signals? How to reconcile?
+   - What early warning signs (if any) are present?
+   - How confident are you given data quality and timing?
+
+7. Source Lineage (for each signal):
+   - Source: [Where data comes from]
+   - Source URL: [Link to data source]
+   - Last updated: [When was this measured]
+   - Methodology: [How was metric calculated]
+
+Output as valid JSON with fields: position, confidence, reasoning (detailed narrative, minimum 300 characters), signals (array of detailed findings), source_lineage (array with source details), source"""
         
-        {context}
-        
-                Output EXACTLY this JSON structure:
-        {{
-            "position": "bullish", "bearish", or "neutral",
-            "confidence": 0 to 100,
-            "signals": [
-                "Hiring +40% MoM indicates expansion [LinkedIn Jobs]",
-                "Traffic rank improved #5,400→#4,872 [SimilarWeb]",
-                "Promoter pledge 0% (vs 8.2% sector avg) [MCA]"
-            ],
-            "reasoning": "Multiple positive operational signals across hiring, traffic, and governance",
-            "source_lineage": [
-                "LinkedIn Jobs: 12 postings past 30 days",
-                "SimilarWeb: India rank #312",
-                "MCA Q3 FY26: Compliant filing"
-            ],
-            "timestamp": "2026-04-11",
-            "ps2_compliance": "All claims trace to provided context"
-        }}
-        """
-        print(f"alt_debate: calling call_grok")
-        response = call_grok([{"role": "user", "content": prompt}])
+        print(f"alt_debate: calling call_grok with enhanced prompt")
+        response = call_grok([
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ])
         
         if not response or not response.strip():
             print(f"alt_debate: ERROR - Empty response from call_grok")

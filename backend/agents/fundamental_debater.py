@@ -21,23 +21,57 @@ def fundamental_debate(company: str) -> dict:
         
         print(f"fundamental_debate: metrics retrieved - {data}")
         
-        prompt = f"""
-        You are a fundamental equity analyst. Analyze {company} based on:
-        Revenue: {data['revenue']}
-        PAT: {data['pat']}
-        ROCE: {data['roce']}
-        Debt/Equity: {data['debt_equity']}
+        system_prompt = """You are an expert fundamental equity analyst with 20+ years of experience analyzing financial statements and metrics.
+
+Your analysis must be:
+1. Data-driven: Back every claim with specific metric values
+2. Comprehensive: Provide detailed step-by-step reasoning, not just conclusions
+3. Methodical: Follow a clear analytical framework
+4. Balanced: Consider both strengths and concerns
+5. Specific: Give exact numbers, ratios, and comparisons
+
+For each analysis, include:
+- Key ratio analysis and trend direction
+- Peer/sector comparison context
+- Growth sustainability assessment
+- Risk identification with evidence
+- Overall financial quality verdict
+
+Output reasoning as a detailed narrative explaining your analytical approach and findings."""
+
+        user_prompt = f"""Analyze {company}'s fundamental financial quality using the following metrics from Q3FY24:
+        - Revenue: {data['revenue']}
+        - PAT (Net Profit): {data['pat']}
+        - ROCE (Return on Capital Employed): {data['roce']}
+        - Debt/Equity Ratio: {data['debt_equity']}
+
+Please provide a comprehensive fundamental analysis with:
+
+1. Position Assessment: Based on the metrics above, is the company's financial health BULLISH, BEARISH, or NEUTRAL? Explain specifically why.
+
+2. Detailed Reasoning (3-4 sentences minimum): Walk through your analytical methodology:
+   - Analyze each metric trend and what it indicates
+   - Compare ROCE against industry benchmarks (target: >15% healthy)
+   - Evaluate debt sustainability (D/E <1 is generally safer)
+   - Consider revenue quality and PAT trend
+   - Identify specific financial strengths and concerns
+   
+3. Confidence Score (0-100): How confident are you in this position? Account for data completeness.
+
+4. Three Evidence Points: 
+   - Point 1 (specific metric and its implication)
+   - Point 2 (ratio analysis result)
+   - Point 3 (trend or comparison finding)
+
+5. Data Quality Note: If any metric is missing, state "Data missing: [metric_name]" and explain impact on analysis.
+
+Output as valid JSON with fields: position, confidence, evidence (array of 3 strings), reasoning (detailed narrative string), source"""
         
-        Provide:
-        1. Position (bullish/bearish/neutral) on financial quality.
-        2. Confidence score (0-100).
-        3. Three evidence points with sources (use metric names as sources).
-        4. If any metric missing, state "Data missing".
-        Output as JSON.
-        """
-        
-        print(f"fundamental_debate: calling call_grok")
-        response = call_grok([{"role": "user", "content": prompt}])
+        print(f"fundamental_debate: calling call_grok with enhanced prompt")
+        response = call_grok([
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ])
         
         if not response or not response.strip():
             print(f"fundamental_debate: ERROR - Empty response from call_grok")

@@ -40,19 +40,59 @@ def sentiment_debate(company: str) -> dict:
         
         combined_context = f"News: {' '.join(news_texts)}\nTranscript excerpt: {transcript_text}"
         
-        prompt = f"""
-        You are a sentiment analyst. Based on the following news and earnings call transcript excerpt for {company}, assess market sentiment.
+        system_prompt = """You are a senior equity research analyst specializing in market sentiment and investor psychology analysis.
+
+Your sentiment analysis must be:
+1. Evidence-based: Find specific quotes or statements backing your sentiment assessment
+2. Detailed: Explain the reasoning behind sentiment signals, not just list them
+3. Multi-dimensional: Consider management tone, guidance, competitive positioning, and market reaction
+4. Forward-looking: Assess what signals indicate about future company trajectory
+5. Balanced: Identify both bullish and bearish signals, then synthesize into overall position
+
+For each analysis, provide:
+- Specific positive signals with direct quotes where possible
+- Specific negative signals or concerns noted
+- Management guidance quality and credibility assessment
+- Market sentiment indicators and what they suggest
+- Synthesis of all signals into coherent narrative"""
+
+        user_prompt = f"""Analyze the market sentiment for {company} based on the news and earnings call materials provided below:
+
+{combined_context}
+
+Provide a comprehensive sentiment analysis including:
+
+1. Overall Position: Is the market sentiment BULLISH, BEARISH, or NEUTRAL? Rate your confidence 0-100.
+
+2. Key Bullish Signals (if any):
+   - Signal 1: [Specific quote or fact] - [Why this is positive]
+   - Signal 2: [Specific quote or fact] - [Why this is positive]
+   
+3. Key Bearish/Concern Signals (if any):
+   - Signal 1: [Specific quote or fact] - [Why this is concerning]
+   - Signal 2: [Specific quote or fact] - [Why this is concerning]
+
+4. Management Guidance Assessment:
+   - Revenue/growth guidance: [What was promised]
+   - Profitability outlook: [What was promised]
+   - Capital allocation: [Any new strategic direction]
+   - Tone and confidence level: [How confident did they sound]
+   - Credibility: [Previous guidance track record if mentioned]
+
+5. Detailed Reasoning (minimum 4-5 sentences):
+   - Synthesize the signals above into a coherent narrative
+   - Explain what the aggregate sentiment indicates about company trajectory
+   - Note any surprises or warnings
+   - Link sentiment to fundamental health indicators
+   - Assess sustainability of this sentiment
+
+Output as valid JSON with fields: position, confidence, reasoning (detailed narrative string, minimum 300 characters), key_signals (array of signal descriptions), source"""
         
-        {combined_context}
-        
-        Output JSON:
-        - "position": "bullish", "bearish", or "neutral"
-        - "confidence": integer 0-100
-        - "key_signals": list of positive/negative signals from the text
-        - "reasoning": short explanation
-        """
-        print(f"sentiment_debate: calling call_grok")
-        response = call_grok([{"role": "user", "content": prompt}])
+        print(f"sentiment_debate: calling call_grok with enhanced prompt")
+        response = call_grok([
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ])
         
         if not response or not response.strip():
             print(f"sentiment_debate: ERROR - Empty response from call_grok")

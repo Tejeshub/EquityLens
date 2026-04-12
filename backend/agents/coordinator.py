@@ -56,50 +56,80 @@ def debate_coordinator(company: str, fundamental_out, sentiment_out, alt_out, th
         
         debate_summary = " | ".join(positions) if positions else "Multi-perspective analysis completed"
         
-        # Helper function to extract excerpt from debater output
-        def extract_excerpt_from_output(output: dict, debater_idx: int) -> str:
-            """Extract detailed analysis from debater output based on field names."""
-            # Priority order: evidence (fund), key_signals (sentiment), signals (alt), reasoning, default
+        # Helper function to extract ALL research points from debater output
+        def extract_all_research_from_output(output: dict, debater_idx: int, debater_names: list) -> dict:
+            """Extract ALL analysis data from debater output (evidence, signals, source_lineage, reasoning)."""
+            research_data = {
+                "debater": debater_names[debater_idx],
+                "position": output.get("position", "neutral"),
+                "confidence": output.get("confidence", 50),
+                "reasoning": output.get("reasoning", ""),
+                "research_points": []  # List of all evidence/signals
+            }
+            
+            # Extract research points based on debater type
             if debater_idx == 0:  # fundamental_debate
                 evidence = output.get("evidence")
-                if evidence and isinstance(evidence, list) and len(evidence) > 0:
-                    return str(evidence[0])[:500]
+                if evidence and isinstance(evidence, list):
+                    for idx, point in enumerate(evidence):
+                        research_data["research_points"].append({
+                            "type": "evidence",
+                            "content": str(point),
+                            "index": idx + 1
+                        })
             elif debater_idx == 1:  # sentiment_debate
                 key_signals = output.get("key_signals")
-                if key_signals and isinstance(key_signals, list) and len(key_signals) > 0:
-                    return "; ".join([str(s) for s in key_signals[:3]])[:500]
+                if key_signals and isinstance(key_signals, list):
+                    for idx, signal in enumerate(key_signals):
+                        research_data["research_points"].append({
+                            "type": "sentiment_signal",
+                            "content": str(signal),
+                            "index": idx + 1
+                        })
             elif debater_idx == 2:  # alt_debate
                 signals = output.get("signals")
-                if signals and isinstance(signals, list) and len(signals) > 0:
-                    return "; ".join([str(s) for s in signals[:3]])[:500]
+                if signals and isinstance(signals, list):
+                    for idx, signal in enumerate(signals):
+                        # Convert dict to JSON string if needed, otherwise keep as string
+                        signal_content = json.dumps(signal) if isinstance(signal, dict) else str(signal)
+                        research_data["research_points"].append({
+                            "type": "alternative_signal",
+                            "content": signal_content,
+                            "index": idx + 1
+                        })
+                
+                # Also extract source lineage for alternative debater
+                source_lineage = output.get("source_lineage")
+                if source_lineage and isinstance(source_lineage, list):
+                    for idx, source in enumerate(source_lineage):
+                        # Convert dict to JSON string for proper JSON parsing in frontend
+                        source_content = json.dumps(source) if isinstance(source, dict) else str(source)
+                        research_data["research_points"].append({
+                            "type": "source_lineage",
+                            "content": source_content,
+                            "index": idx + 1
+                        })
             
-            # Fallback to reasoning field
-            reasoning = output.get("reasoning")
-            if reasoning:
-                return str(reasoning)[:500]
-            
-            return "Analysis performed"
+            return research_data
         
-        # Construct dimensions array
+        # Construct dimensions array with ALL research data
         dimensions = []
         dimension_names = ["industry_position", "valuation_outlook", "risk_assessment"]
         debater_names = ["Fundamental", "Sentiment", "Alternative"]
         
         for i, (dim_name, output) in enumerate(zip(dimension_names, all_outputs)):
             if isinstance(output, dict):
+                # Extract ALL research from this debater
+                research_data = extract_all_research_from_output(output, i, debater_names)
                 score = int(output.get("confidence", 50))  # Use confidence as score
-                excerpt = extract_excerpt_from_output(output, i)
-                citation = {
-                    "document": debater_names[i],
-                    "page": None,
-                    "excerpt": excerpt
-                }
+                
                 dimension = {
                     "dimension": dim_name,
                     "score": score,
                     "confidence": output.get("confidence", 50),
                     "reasoning": output.get("position", "neutral"),
-                    "citations": [citation]
+                    "research_data": research_data, 
+                    "citations": [{"document": debater_names[i], "page": None, "excerpt": research_data.get("reasoning", "")}]
                 }
                 dimensions.append(dimension)
         
@@ -127,7 +157,12 @@ def debate_coordinator(company: str, fundamental_out, sentiment_out, alt_out, th
             "dimensions": dimensions,
             "debate_summary": debate_summary,
             "coordinator_confidence": round(avg_score / 100, 2),
-            "refinement_cycles": refinement_cycles
+            "refinement_cycles": refinement_cycles,
+            "all_outputs": {  # NEW: Store raw outputs for access to research_data
+                "fundamental": fundamental_out,
+                "sentiment": sentiment_out,
+                "alternative": alt_out
+            }
         }
     except Exception as e:
         print(f"debate_coordinator: ERROR - {type(e).__name__}: {str(e)}")

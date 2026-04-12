@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Tuple, Set, Optional
 
 from rag.schemas import RagCitation, RagRetrievedChunk
 
@@ -12,7 +12,7 @@ def _safe_page(value):
 
 def citations_from_chunks(chunks: List[RagRetrievedChunk], max_citations: int = 5) -> List[RagCitation]:
     citations: List[RagCitation] = []
-    seen: set[Tuple[str, int | None, str | None]] = set()
+    seen: Set[Tuple[str, Optional[int], Optional[str]]] = set()
 
     for chunk in chunks:
         meta = chunk.metadata or {}
