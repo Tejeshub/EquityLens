@@ -14,7 +14,7 @@ export interface AgentMessage {
   agent: string;
   message: string;
   timestamp: string;
-  type: "analysis" | "challenge" | "agreement" | "verdict" | "hallucination_flag";
+  type: "analysis" | "challenge" | "agreement" | "verdict" | "hallucination_flag" | "position" | "reasoning" | "sentiment_signal" | "alternative_signal" | "source_lineage";
 }
 
 export interface ScoreDimension {

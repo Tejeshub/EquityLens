@@ -63,7 +63,7 @@ const CompanyDetail = () => {
       <Navbar />
       <div className="pt-12">
         <div className={`container mx-auto px-4 py-5 transition-all ${copilotOpen || reasoningOpen ? "pr-[420px]" : ""}`}>
-          <CompanyOverview company={company} />
+          <CompanyOverview company={company} isAnalyzing={isAnalyzing} />
 
           {/* Analysis Loading State */}
           {isAnalyzing && (
@@ -276,7 +276,7 @@ const CompanyDetail = () => {
             sector: company.sector,
           }}
         />
-        <ReasoningPanel isOpen={reasoningOpen} onClose={() => setReasoningOpen(false)} sectionId={reasoningSectionId} />
+        <ReasoningPanel isOpen={reasoningOpen} onClose={() => setReasoningOpen(false)} sectionId={reasoningSectionId} analysisData={analysisData} />
       </div>
     </div>
   );

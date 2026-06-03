@@ -1,7 +1,7 @@
 import { Company } from "@/data/dummyData";
 import { TrendingUp, TrendingDown, Shield, Target, Users, AlertTriangle } from "lucide-react";
 
-const CompanyOverview = ({ company }: { company: Company }) => {
+const CompanyOverview = ({ company, isAnalyzing = false }: { company: Company; isAnalyzing?: boolean }) => {
   const metrics = [
     { label: "Market Cap", value: company.marketCap },
     { label: "P/E Ratio", value: company.pe.toFixed(1) },
@@ -39,21 +39,25 @@ const CompanyOverview = ({ company }: { company: Company }) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-px bg-border rounded-md overflow-hidden border border-border">
-        {metrics.map(({ label, value }) => (
-          <div key={label} className="bg-card p-2.5">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</p>
-            <p className="text-sm font-semibold font-mono text-foreground mt-0.5">{value}</p>
+      {!isAnalyzing && (
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-px bg-border rounded-md overflow-hidden border border-border">
+            {metrics.map(({ label, value }) => (
+              <div key={label} className="bg-card p-2.5">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</p>
+                <p className="text-sm font-semibold font-mono text-foreground mt-0.5">{value}</p>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <ScorePill icon={Target} label="Industry Position" score={8.2} />
-        <ScorePill icon={Shield} label="Financial Quality" score={7.8} />
-        <ScorePill icon={Users} label="Mgmt Credibility" score={6.5} />
-        <ScorePill icon={AlertTriangle} label="Risk Score" score={7.0} />
-      </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <ScorePill icon={Target} label="Industry Position" score={8.2} />
+            <ScorePill icon={Shield} label="Financial Quality" score={7.8} />
+            <ScorePill icon={Users} label="Mgmt Credibility" score={6.5} />
+            <ScorePill icon={AlertTriangle} label="Risk Score" score={7} />
+          </div>
+        </>
+      )}
     </div>
   );
 };
