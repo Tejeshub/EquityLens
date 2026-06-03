@@ -73,7 +73,10 @@ db.sqlite3-journal
 chroma_data/
 data/
 raw_data/
-
+backend/chroma_data/
+*.sqlite3
+*.db
+backend/data/raw/
 # Flask stuff:
 instance/
 .webassets-cache
