@@ -1,0 +1,24 @@
+# Render blueprint (backend only; frontend deploys on Vercel from /frontend). NOTHING here is deployed automatically by this repo.
+# Secrets use `sync: false`: enter them in the Render dashboard; they are never committed. See docs/DEPLOYMENT.md for the full checklist.
+services:
+  - type: web
+    name: equitylens-api
+    runtime: python
+    rootDir: backend
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    # Migrations are a deliberate, separate step (docs/DEPLOYMENT.md §3) - the service never migrates your database implicitly.
+    # /ready returns 503 'schema_mismatch' if the database is not at this build's migration head.
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - { key: PYTHON_VERSION, value: "3.12.3" }
+      - { key: ENVIRONMENT, value: production }
+      - { key: DATA_PROFILE, value: public }          # ALL restricted data sources stay OFF until licensed (docs/PROVIDERS.md); a flag is not a licence
+      - { key: COPILOT_PROVIDER, value: groq }        # free-tier Gemini may train on prompts; see PROVIDERS.md before changing
+      - { key: THREADPOOL_SIZE, value: "10" }         # DB pool = THREADPOOL_SIZE + RESEARCH_MAX_CONCURRENT + 2 (+4 extra, +5 budget pool); keep under your DB's connection cap
+      - { key: ALLOWED_ORIGINS, sync: false }         # exact Vercel origin(s), comma-separated, e.g. https://your-app.vercel.app
+      - { key: DATABASE_URL, sync: false }            # postgresql+psycopg2://... (Supabase session-mode pooler, port 5432)
+      - { key: GROK_API_KEY, sync: false }            # NOTE: this is a *Groq* key (legacy variable name)
+      - { key: EXA_API_KEY, sync: false }             # only used if you set ENABLE_NEWS=true (display rights unresolved)
+      - { key: GEMINI_API_KEY, sync: false }          # optional; only used if COPILOT_PROVIDER=gemini and GEMINI_BILLING_ENABLED=true
