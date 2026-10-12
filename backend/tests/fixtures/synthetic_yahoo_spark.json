@@ -1,0 +1,77 @@
+{
+ "SYNTHALPHA.NS": {
+  "timestamp": [
+   1791258300,
+   1791344700,
+   1791431100,
+   1791517500,
+   1791776700
+  ],
+  "symbol": "SYNTHALPHA.NS",
+  "end": null,
+  "previousClose": null,
+  "chartPreviousClose": 100.0,
+  "start": null,
+  "dataGranularity": 300,
+  "fulldayPrice": 105.0,
+  "fulldayChange": 1.0,
+  "fulldayChangePercent": 0.962,
+  "close": [
+   100.0,
+   101.0,
+   102.0,
+   104.0,
+   105.0
+  ]
+ },
+ "SYNTHBETA.NS": {
+  "timestamp": [
+   1791258300,
+   1791344700,
+   1791431100,
+   1791517500,
+   1791776700
+  ],
+  "symbol": "SYNTHBETA.NS",
+  "end": null,
+  "previousClose": null,
+  "chartPreviousClose": 200.0,
+  "start": null,
+  "dataGranularity": 300,
+  "fulldayPrice": 195.0,
+  "fulldayChange": -4.0,
+  "fulldayChangePercent": -2.01,
+  "close": [
+   200.0,
+   198.0,
+   196.0,
+   199.0,
+   195.0
+  ]
+ },
+ "SYNTHGAMMA.NS": {
+  "timestamp": [
+   1791258300,
+   1791344700,
+   1791431100,
+   1791517500,
+   1791776700
+  ],
+  "symbol": "SYNTHGAMMA.NS",
+  "end": null,
+  "previousClose": null,
+  "chartPreviousClose": 300.0,
+  "start": null,
+  "dataGranularity": 300,
+  "fulldayPrice": 306.0,
+  "fulldayChange": 3.0,
+  "fulldayChangePercent": 0.99,
+  "close": [
+   300.0,
+   301.0,
+   302.0,
+   303.0,
+   306.0
+  ]
+ }
+}

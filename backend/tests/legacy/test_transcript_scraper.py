@@ -88,38 +88,53 @@ class TestTranscriptScraperChunking:
     """Test text chunking functionality."""
     
     def test_chunk_text_by_paragraphs_basic(self):
-        """Test basic paragraph-based chunking."""
+        """Short paragraphs are packed together up to ~1000 chars (context preserved).
+
+        Updated contract: the chunker greedily merges paragraphs into chunks of
+        at most 1000 chars rather than emitting one chunk per paragraph, so three
+        short paragraphs yield ONE chunk containing all of them, in order. The
+        old assertion (>= 2 chunks) predated that packing behaviour.
+        """
         scraper = TranscriptScraper("TEST")
-        
+
         text = """This is paragraph 1 with some content.
 
 This is paragraph 2 with different content.
 
 This is paragraph 3."""
-        
+
         chunks = scraper._chunk_text_by_paragraphs(text, page_num=1)
-        
-        assert len(chunks) >= 2
-        for chunk in chunks:
-            assert "page_num" in chunk
-            assert "text" in chunk
-            assert chunk["page_num"] == 1
-    
+
+        assert len(chunks) == 1
+        assert chunks[0]["page_num"] == 1
+        body = chunks[0]["text"]
+        assert body.index("paragraph 1") < body.index("paragraph 2") < body.index("paragraph 3")
+
+        # Paragraphs that cannot share a 1000-char chunk are split at the boundary.
+        para = "Word " * 80  # ~400 chars
+        chunks = scraper._chunk_text_by_paragraphs(f"{para}\n\n{para}\n\n{para}", page_num=7)
+        assert len(chunks) == 2
+        assert all(c["page_num"] == 7 and len(c["text"]) <= 1000 for c in chunks)
+
     def test_chunk_text_by_paragraphs_large_text(self):
-        """Test chunking of large paragraph (should split at 1000 chars)."""
+        """An oversized paragraph is split at <=1000 chars and no content is lost."""
         scraper = TranscriptScraper("TEST")
-        
+
         # Create a paragraph larger than 1000 characters
         large_para = "This is a sentence. " * 100  # ~2000 chars
         text = f"{large_para}\n\nAnother paragraph."
-        
+
         chunks = scraper._chunk_text_by_paragraphs(text, page_num=1)
-        
-        # Should be split into multiple chunks
+
         assert len(chunks) >= 2
         for chunk in chunks:
-            assert len(chunk["text"]) > 0
-    
+            assert 0 < len(chunk["text"]) <= 1000 + len("\n\nAnother paragraph.")
+            assert chunk["page_num"] == 1
+        joined = " ".join(c["text"] for c in chunks)
+        # Regression: the short trailing paragraph used to be dropped by min-size.
+        assert "Another paragraph." in joined
+        assert joined.count("This is a sentence.") == 100
+
     def test_chunk_respects_min_chunk_size(self):
         """Test that very small chunks are filtered."""
         scraper = TranscriptScraper("TEST")
@@ -145,9 +160,10 @@ class TestTranscriptScraperMetadata:
         # Create a mock PDF with simple content
         pdf_content = b"%PDF-1.4\n1 0 obj\n<</Type/Catalog>>\nendobj\nxref\ntrailer\n<</Size 2/Root 1 0 R>>\nstartxref\n0\n%%EOF"
         
-        with patch.object(scraper, '_extract_text_from_pdf') as mock_extract:
+        with patch.object(scraper, '_extract_text_from_pdf_parallel') as mock_extract:  # renamed from _extract_text_from_pdf
             mock_extract.return_value = [
-                {"text": "Sample document content here.", "page_num": 1}
+                {"text": "Sample document content here, long enough to survive the min chunk size.", "page_num": 1},
+                {"text": "Second page content, also long enough to survive the min chunk size filter.", "page_num": 2},
             ]
             
             chunks = scraper._create_document_chunks(
@@ -175,6 +191,11 @@ class TestTranscriptScraperMetadata:
             assert metadata["page_num"] == 1
             assert metadata["citation"] == "https://example.com/test.pdf"
             assert metadata["citation_label"] != ""
+            assert metadata["doc_title"] == "Test Document"
+            assert "2025-03-15" in metadata["citation_label"]
+
+            # Page metadata is preserved per page.
+            assert [c["metadata"]["page_num"] for c in chunks] == [1, 2]
 
 
 class TestTranscriptScraperIntegration:

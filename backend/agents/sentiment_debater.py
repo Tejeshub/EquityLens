@@ -1,7 +1,7 @@
 import json
 import requests
 from agents.grok_client import call_grok
-from config import EXA_API_KEY, FIRECRAWL_API_KEY
+from config import EXA_API_KEY
 
 def sentiment_debate(company: str) -> dict:
     print(f"sentiment_debate: start for {company}")
@@ -24,19 +24,11 @@ def sentiment_debate(company: str) -> dict:
         else:
             print(f"sentiment_debate: Exa search failed with status {exa_resp.status_code}")
         
-        # Use Firecrawl to scrape a known earnings call transcript page (mock URL)
-        firecrawl_headers = {"Authorization": f"Bearer {FIRECRAWL_API_KEY}"}
-        transcript_url = f"https://www.moneycontrol.com/company-article/{company}/transcript"
-        transcript_text = ""
-        try:
-            print(f"sentiment_debate: fetching transcript from {transcript_url}")
-            fc_resp = requests.get(transcript_url, headers=firecrawl_headers, timeout=30)
-            if fc_resp.status_code == 200:
-                transcript_text = fc_resp.text[:2000]
-                print(f"sentiment_debate: transcript fetched successfully")
-        except Exception as e:
-            print(f"sentiment_debate: WARNING - failed to fetch transcript: {type(e).__name__}")
-            transcript_text = "Transcript not available"
+        # Transcript retrieval is intentionally disabled: the previous code sent the
+        # Firecrawl API key as a bearer token to a third-party host (moneycontrol),
+        # which leaked the credential. Re-enable only via a provider call to the
+        # Firecrawl API host itself, never by attaching provider keys to other hosts.
+        transcript_text = "Transcript not available"
         
         combined_context = f"News: {' '.join(news_texts)}\nTranscript excerpt: {transcript_text}"
         

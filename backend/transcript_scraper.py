@@ -409,40 +409,59 @@ class TranscriptScraper:
         Returns:
             List of dicts: {text, page_num}
         """
-        chunks = []
-        
+        max_chunk_size = 1000
+
         # Split by double newlines (paragraph boundaries)
-        paragraphs = re.split(r"\n\s*\n", text)
-        
-        current_chunk = ""
-        for para in paragraphs:
+        pieces: List[str] = []
+        for para in re.split(r"\n\s*\n", text):
             para = para.strip()
             if not para:
                 continue
-            
-            # If adding paragraph would exceed ~1000 chars, flush current chunk
-            potential_chunk = (current_chunk + "\n\n" + para) if current_chunk else para
-            
-            if len(potential_chunk) > 1000:
-                # Save current chunk if it has content
-                if current_chunk.strip():
-                    chunks.append({
-                        "text": current_chunk.strip(),
-                        "page_num": page_num
-                    })
-                current_chunk = para
+            # A single paragraph larger than the cap is split on sentence/word
+            # boundaries so no chunk exceeds max_chunk_size.
+            while len(para) > max_chunk_size:
+                window = para[:max_chunk_size]
+                cut = max(window.rfind(". "), window.rfind("? "), window.rfind("! "))
+                cut = cut + 1 if cut > 0 else window.rfind(" ")
+                if cut <= 0:
+                    cut = max_chunk_size
+                pieces.append(para[:cut].strip())
+                para = para[cut:].strip()
+            if para:
+                pieces.append(para)
+
+        # Greedily pack pieces into chunks of at most max_chunk_size chars.
+        packed: List[str] = []
+        current_chunk = ""
+        for piece in pieces:
+            potential = (current_chunk + "\n\n" + piece) if current_chunk else piece
+            if len(potential) > max_chunk_size and current_chunk:
+                packed.append(current_chunk)
+                current_chunk = piece
             else:
-                current_chunk = potential_chunk
-        
-        # Save final chunk
-        if current_chunk.strip() and len(current_chunk) >= min_chunk_size:
-            chunks.append({
-                "text": current_chunk.strip(),
-                "page_num": page_num
-            })
-        
-        return chunks
-    
+                current_chunk = potential
+        if current_chunk:
+            packed.append(current_chunk)
+
+        # Enforce min_chunk_size without losing content: an undersized chunk is
+        # merged into its neighbour (previous, or next if it is first). Only if
+        # the whole page is smaller than min_chunk_size is it dropped as noise.
+        merged: List[str] = []
+        carry = ""
+        for chunk in packed:
+            if carry:
+                chunk = carry + "\n\n" + chunk
+                carry = ""
+            if len(chunk) < min_chunk_size:
+                if merged:
+                    merged[-1] = merged[-1] + "\n\n" + chunk
+                else:
+                    carry = chunk
+            else:
+                merged.append(chunk)
+
+        return [{"text": c.strip(), "page_num": page_num} for c in merged if c.strip()]
+
     def _create_document_chunks(
         self,
         pdf_content: bytes,

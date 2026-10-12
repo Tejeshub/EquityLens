@@ -1,12 +1,17 @@
-from sqlalchemy import create_engine, Column, String, Float, Integer, DateTime, Text, MetaData, Table, insert, select
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import Column, String, Float, Integer, DateTime, Text, Table, select
 from datetime import datetime
 import uuid
-from config import POSTGRES_URL
+from core.db import Base, get_engine
 
-engine = create_engine(POSTGRES_URL)
-SessionLocal = sessionmaker(bind=engine)
-metadata = MetaData()
+# Shared with the ORM models so Alembic sees one schema.
+metadata = Base.metadata
+
+
+def __getattr__(name):
+    # Lazy engine: importing this module no longer requires a configured database.
+    if name == "engine":
+        return get_engine()
+    raise AttributeError(name)
 
 # Define tables (will be created by init_db.py)
 financials_quarterly = Table(
@@ -48,7 +53,7 @@ guidance_entries = Table(
 )
 
 def insert_raw_document(raw_doc: dict) -> str:
-    with engine.begin() as conn:
+    with get_engine().begin() as conn:
         # Check if document already exists
         existing = conn.execute(
             select(raw_documents).where(raw_documents.c.id == raw_doc["raw_document_id"])

@@ -18,7 +18,7 @@ if not GROK_API_KEY.strip():
     print("❌ ERROR: GROK_API_KEY is empty.")
     raise ValueError("❌ GROK_API_KEY is empty. Please provide a valid API key.")
 
-print(f"grok_client: Initializing with API key (last 4 chars: ...{GROK_API_KEY[-4:]})")
+print("grok_client: Initializing Groq client")
 
 # Initialize Groq client
 try:

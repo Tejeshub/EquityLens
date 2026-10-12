@@ -1,0 +1,55 @@
+{
+ "resolvedSearchType": "",
+ "results": [
+  {
+   "title": "Synthetic headline 1",
+   "url": "https://news.example.com/synthetic/1",
+   "publishedDate": "2026-10-12T09:46:38.000Z",
+   "text": "# Synthetic headline 1\n\nSynthetic placeholder body for testing only. Quarterly sales commentary is invented.",
+   "id": "https://news.example.com/synthetic/1"
+  },
+  {
+   "title": "Synthetic headline 2",
+   "url": "https://news.example.org/synthetic/2",
+   "publishedDate": "2026-10-10T11:20:54.000Z",
+   "author": "Synthetic Author",
+   "text": "Synthetic headline 2\n\nInvented text used only by automated tests.",
+   "id": "https://news.example.org/synthetic/2"
+  },
+  {
+   "title": "Synthetic headline 3",
+   "url": "https://markets.example.com/synthetic/3",
+   "publishedDate": "2026-10-09T14:34:35.000Z",
+   "author": "Test Writer",
+   "text": "Synthetic headline 3\n\nAnother invented excerpt for the news pipeline.",
+   "id": "https://markets.example.com/synthetic/3"
+  },
+  {
+   "title": "Synthetic headline 4",
+   "url": "https://blog.example.org/synthetic/4",
+   "publishedDate": "2026-10-06T17:00:18.000Z",
+   "text": "Synthetic headline 4\n\nPlaceholder text. Not a real article.",
+   "id": "https://blog.example.org/synthetic/4"
+  },
+  {
+   "title": "Synthetic headline 5",
+   "url": "https://wire.example.com/synthetic/5",
+   "publishedDate": "2026-10-03T08:00:00.000Z",
+   "text": "Synthetic headline 5\n\nPlaceholder text. Not a real article.",
+   "id": "https://wire.example.com/synthetic/5"
+  },
+  {
+   "title": "Synthetic headline 6 (undated)",
+   "url": "https://archive.example.org/synthetic/6",
+   "text": "Synthetic headline 6\n\nThis synthetic item intentionally has no publishedDate.",
+   "id": "https://archive.example.org/synthetic/6"
+  }
+ ],
+ "searchTime": 1.0,
+ "costDollars": {
+  "total": 0.007,
+  "search": {
+   "neural": 0.007
+  }
+ }
+}
