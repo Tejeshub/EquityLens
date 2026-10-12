@@ -1,46 +1,188 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import Navbar from "@/components/Navbar";
-import { watchlists, companies, Watchlist } from "@/data/dummyData";
-import { Plus, Trash2, Play, Building2, X } from "lucide-react";
+import { useNavigate } from "react-router";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import Layout from "@/components/Layout";
+import NumText from "@/components/NumText";
+import CompanyPicker from "@/components/CompanyPicker";
+import { EmptyBox, ErrorBox, InfoBanner, LoadingBox, SourceLine } from "@/components/DataStates";
+import { useSnapshot, useWatchlists } from "@/hooks/queries";
+import { useSource } from "@/hooks/useCapabilities";
+import { api, ApiError, describeError } from "@/services/api";
+import { fmtPercent, fmtPrice, isNum, signClass } from "@/lib/format";
+import { reasonText } from "@/lib/reasons";
+import { Plus, Trash2, Play, Building2, X, Pencil, Check } from "lucide-react";
+import type { Watchlist } from "@/types/api";
 
-const caps = ["Small Cap", "Mid Cap"];
-const sectors = ["Chemicals"];
-const timeOptions = ["Q3 FY26 (Latest)", "Q2 FY26", "Q1 FY26", "Q4 FY25", "Annual FY25", "Past Performance"];
+const DUP_COMPANY = "That company is already in this watchlist.";
+const DUP_NAME = "You already have a watchlist with that name.";
 
-const WatchlistsPage = () => {
+/** `conflict` is what a 409 means for the action that failed (adding a company vs. creating / renaming a list). */
+const mutationMessage = (e: unknown, conflict: string = DUP_COMPANY): string => {
+  if (e instanceof ApiError) {
+    if (e.status === 409) return conflict;
+    if (e.status === 422 && e.code === "validation_error") {
+      const first = e.fields.name ?? Object.values(e.fields)[0] ?? "the value is not valid";
+      return `Could not save: ${first.charAt(0).toLowerCase()}${first.slice(1)}`.replace(/\.$/, "") + ".";
+    }
+    if (e.status === 422) return e.message;
+  }
+  return describeError(e);
+};
+
+const WatchlistCard = ({ wl }: { wl: Watchlist }) => {
   const navigate = useNavigate();
-  const [lists, setLists] = useState<Watchlist[]>(watchlists);
-  const [showCreate, setShowCreate] = useState(false);
-  const [newName, setNewName] = useState("");
-  const [newSector, setNewSector] = useState("Chemicals");
-  const [newCap, setNewCap] = useState("Mid Cap");
-  const [selectedTime, setSelectedTime] = useState<Record<string, string>>({});
-  const [selectedMetric, setSelectedMetric] = useState<Record<string, string>>({});
+  const qc = useQueryClient();
+  const [showPrices, setShowPrices] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const [name, setName] = useState(wl.name);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const market = useSource("market_data");
+  const fundamentals = useSource("fundamentals");
+  const pricesOn = market.state === "enabled";
+  const snapshot = useSnapshot(wl.id, showPrices && pricesOn);
 
-  const handleCreate = () => {
-    if (!newName) return;
-    setLists([...lists, { id: `w${lists.length + 1}`, name: newName, sector: newSector, cap: newCap, companies: [], createdAt: new Date().toISOString().split("T")[0] }]);
-    setShowCreate(false);
-    setNewName("");
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ["watchlists"] });
+    qc.invalidateQueries({ queryKey: ["snapshot", wl.id] });
   };
+  const onError = (e: unknown) => setError(mutationMessage(e));
+  const onNameError = (e: unknown) => setError(mutationMessage(e, DUP_NAME));
 
-  const handleAddCompany = (wlId: string, cId: string) => {
-    setLists(lists.map((w) => w.id === wlId && !w.companies.includes(cId) && w.companies.length < 6 ? { ...w, companies: [...w.companies, cId] } : w));
-  };
+  const add = useMutation({ mutationFn: (cid: string) => api.watchlists.addItem(wl.id, cid), onSuccess: () => { setError(null); refresh(); }, onError });
+  const removeItem = useMutation({ mutationFn: (cid: string) => api.watchlists.removeItem(wl.id, cid), onSuccess: () => { setError(null); refresh(); }, onError });
+  const rename = useMutation({ mutationFn: (n: string) => api.watchlists.rename(wl.id, n), onSuccess: () => { setError(null); setRenaming(false); refresh(); }, onError: onNameError });
+  const del = useMutation({ mutationFn: () => api.watchlists.remove(wl.id), onSuccess: () => { qc.invalidateQueries({ queryKey: ["watchlists"] }); }, onError });
 
-  const handleRemoveCompany = (wlId: string, cId: string) => {
-    setLists(lists.map((w) => w.id === wlId ? { ...w, companies: w.companies.filter((c) => c !== cId) } : w));
-  };
+  const busy = add.isPending || removeItem.isPending || rename.isPending || del.isPending;
+  const rowById = new Map(snapshot.data?.rows.map((r) => [r.company_id, r]));
+  const full = wl.items.length >= wl.max_items;
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <div className="pt-12 container mx-auto px-4 py-5">
+    <div className="border border-border rounded-md bg-card" data-testid={`watchlist-${wl.id}`}>
+      <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-b border-border">
+        <div className="min-w-0">
+          {renaming ? (
+            <form onSubmit={(e) => { e.preventDefault(); if (name.trim() && !rename.isPending) rename.mutate(name.trim()); }} className="flex items-center gap-1.5">
+              <input aria-label="Watchlist name" value={name} onChange={(e) => setName(e.target.value)} maxLength={80}
+                className="bg-card border border-border rounded-md px-2 py-1 text-sm outline-none focus:ring-1 focus:ring-primary/30 text-foreground" />
+              <button type="submit" aria-label="Save name" disabled={rename.isPending || !name.trim()} className="p-1 text-primary disabled:opacity-50"><Check className="w-4 h-4" /></button>
+              <button type="button" aria-label="Cancel rename" onClick={() => { setRenaming(false); setName(wl.name); }} className="p-1 text-muted-foreground"><X className="w-4 h-4" /></button>
+            </form>
+          ) : (
+            <div className="flex items-center gap-1.5">
+              <h3 className="text-sm font-semibold text-foreground truncate">{wl.name}</h3>
+              <button aria-label={`Rename ${wl.name}`} onClick={() => setRenaming(true)} className="p-1 text-muted-foreground hover:text-foreground"><Pencil className="w-3 h-3" /></button>
+            </div>
+          )}
+          <span className="text-[10px] text-muted-foreground">{wl.items.length}/{wl.max_items} companies</span>
+        </div>
+        <div className="flex items-center gap-2">
+          {pricesOn && (
+            <button onClick={() => setShowPrices((v) => !v)} aria-pressed={showPrices}
+              className="px-3 py-1 rounded-md bg-secondary text-secondary-foreground text-[11px] font-medium hover:bg-accent">
+              {showPrices ? "Hide prices" : "Show delayed prices"}
+            </button>
+          )}
+          <button
+            onClick={() => wl.items.length >= 2 && navigate(`/watchlist/${encodeURIComponent(wl.id)}/analysis`)}
+            disabled={wl.items.length < 2 || fundamentals.state === "disabled"}
+            title={fundamentals.state === "disabled" ? (fundamentals.reason ?? "Comparison is not available in this deployment") : wl.items.length < 2 ? "Add at least 2 companies to compare" : undefined}
+            className="flex items-center gap-1 px-3 py-1 rounded-md bg-primary text-primary-foreground text-[11px] font-medium hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            <Play className="w-3 h-3" /> Compare
+          </button>
+          {confirmDelete ? (
+            <span className="flex items-center gap-1 text-[11px]">
+              <button onClick={() => del.mutate()} disabled={busy} className="px-2 py-1 rounded bg-destructive text-destructive-foreground">Confirm delete</button>
+              <button onClick={() => setConfirmDelete(false)} className="px-2 py-1 rounded bg-secondary text-secondary-foreground">Cancel</button>
+            </span>
+          ) : (
+            <button aria-label={`Delete ${wl.name}`} onClick={() => setConfirmDelete(true)} className="p-1 text-muted-foreground hover:text-destructive">
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="p-4 space-y-3">
+        {error && <div role="alert"><InfoBanner tone="warn">{error}</InfoBanner></div>}
+
+        {showPrices && pricesOn && snapshot.isError && <ErrorBox error={snapshot.error} onRetry={() => snapshot.refetch()} title="Prices unavailable" />}
+        {showPrices && pricesOn && snapshot.isPending && <p className="text-[11px] text-muted-foreground" role="status">Loading prices…</p>}
+
+        {wl.items.length === 0 ? (
+          <EmptyBox title="This watchlist is empty">Search below to add companies.</EmptyBox>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
+            {wl.items.map((c) => {
+              const row = rowById.get(c.company_id);
+              return (
+                <div key={c.company_id} className="border border-border rounded-md p-2.5 relative hover:bg-secondary/30 transition-colors">
+                  <button aria-label={`Remove ${c.name}`} disabled={busy} onClick={() => removeItem.mutate(c.company_id)}
+                    className="absolute top-1 right-1 w-4 h-4 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center disabled:opacity-50">
+                    <X className="w-2.5 h-2.5" />
+                  </button>
+                  <button onClick={() => navigate(`/company/${encodeURIComponent(c.company_id)}`)} className="text-left w-full">
+                    <Building2 className="w-4 h-4 text-muted-foreground mb-1" />
+                    <p className="text-[11px] font-medium text-foreground truncate">{c.name}</p>
+                    <p className="text-[10px] font-mono text-muted-foreground">{c.symbol}</p>
+                  </button>
+                  {showPrices && pricesOn && snapshot.data && (
+                    row && row.status === "ok" ? (
+                      <div className="mt-0.5">
+                        <p className="text-[11px] font-mono text-foreground"><NumText text={fmtPrice(row.price)} /></p>
+                        <p className={`text-[11px] font-mono ${signClass(row.change_percent)}`}>
+                          <NumText text={fmtPercent(row.change_percent)} />
+                        </p>
+                        {row.stale && <span className="text-[9px] px-1 rounded bg-warning/15 text-warning font-medium">stale</span>}
+                      </div>
+                    ) : (
+                      <p className="text-[10px] text-muted-foreground mt-0.5">{reasonText(row?.reason)}</p>
+                    )
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {showPrices && pricesOn && snapshot.data && (
+          <SourceLine label={market.caps?.market_data.provider ? `Delayed – ${market.caps.market_data.provider}` : "Delayed"} source={snapshot.data.source} note={snapshot.data.note}
+            asOf={snapshot.data.rows.map((r) => r.as_of).filter(Boolean).sort().pop() ?? null}
+            cached={snapshot.data.rows.some((r) => r.cached)} stale={snapshot.data.rows.some((r) => r.stale)} />
+        )}
+
+        {full ? (
+          <p className="text-[11px] text-muted-foreground">This watchlist has reached its {wl.max_items}-company limit.</p>
+        ) : (
+          <CompanyPicker existingIds={wl.items.map((i) => i.company_id)} disabled={busy} onPick={(cid) => add.mutate(cid)} />
+        )}
+      </div>
+    </div>
+  );
+};
+
+const WatchlistsPage = () => {
+  const qc = useQueryClient();
+  const lists = useWatchlists();
+  const [showCreate, setShowCreate] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [createError, setCreateError] = useState<string | null>(null);
+
+  const create = useMutation({
+    mutationFn: (name: string) => api.watchlists.create(name),
+    onSuccess: () => { setShowCreate(false); setNewName(""); setCreateError(null); qc.invalidateQueries({ queryKey: ["watchlists"] }); },
+    onError: (e) => setCreateError(mutationMessage(e, DUP_NAME)),
+  });
+
+  return (
+    <Layout title="Watchlists">
+      <div className="container mx-auto px-4 py-5">
         <div className="flex items-center justify-between mb-5">
           <div>
             <h1 className="text-xl font-bold text-foreground">Watchlists</h1>
-            <p className="text-xs text-muted-foreground mt-0.5">Compare companies across sectors & caps</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Track companies and compare their reported financials</p>
           </div>
           <button onClick={() => setShowCreate(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors">
             <Plus className="w-3.5 h-3.5" /> New Watchlist
@@ -48,105 +190,35 @@ const WatchlistsPage = () => {
         </div>
 
         {showCreate && (
-          <div className="border border-border rounded-md bg-card p-4 mb-5 animate-fade-in">
+          <form
+            onSubmit={(e) => { e.preventDefault(); if (newName.trim() && !create.isPending) create.mutate(newName.trim()); }}
+            className="border border-border rounded-md bg-card p-4 mb-5 animate-fade-in"
+          >
             <h3 className="text-sm font-semibold text-foreground mb-3">Create Watchlist</h3>
             <div className="flex gap-3 items-end">
               <div className="flex-1">
-                <label className="metric-label mb-1 block">Name</label>
-                <input value={newName} onChange={(e) => setNewName(e.target.value)} className="w-full bg-card border border-border rounded-md px-3 py-1.5 text-sm outline-none focus:ring-1 focus:ring-primary/30 text-foreground" placeholder="e.g., Pharma Small Cap" />
+                <label htmlFor="wl-name" className="metric-label mb-1 block">Name</label>
+                <input id="wl-name" value={newName} onChange={(e) => setNewName(e.target.value)} maxLength={80}
+                  className="w-full bg-card border border-border rounded-md px-3 py-1.5 text-sm outline-none focus:ring-1 focus:ring-primary/30 text-foreground" placeholder="e.g., Chemicals picks" />
               </div>
-              <div>
-                <label className="metric-label mb-1 block">Sector</label>
-                <select value={newSector} onChange={(e) => setNewSector(e.target.value)} className="bg-card border border-border rounded-md px-3 py-1.5 text-sm text-foreground">
-                  {sectors.map((s) => <option key={s}>{s}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="metric-label mb-1 block">Cap</label>
-                <select value={newCap} onChange={(e) => setNewCap(e.target.value)} className="bg-card border border-border rounded-md px-3 py-1.5 text-sm text-foreground">
-                  {caps.map((c) => <option key={c}>{c}</option>)}
-                </select>
-              </div>
-              <button onClick={handleCreate} className="px-3 py-1.5 bg-primary text-primary-foreground rounded-md text-sm font-medium">Create</button>
-              <button onClick={() => setShowCreate(false)} className="px-3 py-1.5 bg-secondary text-secondary-foreground rounded-md text-sm">Cancel</button>
+              <button type="submit" disabled={create.isPending || !newName.trim()} className="px-3 py-1.5 bg-primary text-primary-foreground rounded-md text-sm font-medium disabled:opacity-50">Create</button>
+              <button type="button" onClick={() => { setShowCreate(false); setCreateError(null); }} className="px-3 py-1.5 bg-secondary text-secondary-foreground rounded-md text-sm">Cancel</button>
             </div>
-          </div>
+            {createError && <p role="alert" className="text-[11px] text-chart-down mt-2">{createError}</p>}
+          </form>
         )}
 
-        <div className="space-y-5">
-          {lists.map((wl) => {
-            const wlCompanies = companies.filter((c) => wl.companies.includes(c.id));
-            const available = companies.filter((c) => c.sector === wl.sector && c.cap === wl.cap && !wl.companies.includes(c.id));
-
-            return (
-              <div key={wl.id} className="border border-border rounded-md bg-card">
-                <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-                  <div>
-                    <h3 className="text-sm font-semibold text-foreground">{wl.name}</h3>
-                    <div className="flex gap-1.5 mt-1">
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground">{wl.sector}</span>
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/8 text-primary">{wl.cap}</span>
-                      <span className="text-[10px] text-muted-foreground">{wlCompanies.length}/6</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <select value={selectedTime[wl.id] || timeOptions[0]} onChange={(e) => setSelectedTime({ ...selectedTime, [wl.id]: e.target.value })} className="bg-card border border-border rounded-md px-2 py-1 text-[11px] text-foreground">
-                      {timeOptions.map((t) => <option key={t}>{t}</option>)}
-                    </select>
-                    <select value={selectedMetric[wl.id] || "All Metrics"} onChange={(e) => setSelectedMetric({ ...selectedMetric, [wl.id]: e.target.value })} className="bg-card border border-border rounded-md px-2 py-1 text-[11px] text-foreground">
-                      {["All Metrics", "P/E Ratio", "ROE", "ROCE", "D/E Ratio", "Promoter Holding"].map((m) => <option key={m}>{m}</option>)}
-                    </select>
-                    <button
-                      onClick={() => wlCompanies.length >= 2 && navigate(`/watchlist/${wl.id}/analysis`)}
-                      disabled={wlCompanies.length < 2}
-                      className="flex items-center gap-1 px-3 py-1 rounded-md bg-primary text-primary-foreground text-[11px] font-medium hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                    >
-                      <Play className="w-3 h-3" /> Analyze
-                    </button>
-                    <button onClick={() => setLists(lists.filter((w) => w.id !== wl.id))} className="p-1 text-muted-foreground hover:text-destructive">
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="p-4">
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
-                    {wlCompanies.map((c) => (
-                      <div key={c.id} className="border border-border rounded-md p-2.5 relative group cursor-pointer hover:bg-secondary/30 transition-colors" onClick={() => navigate(`/company/${c.id}`)}>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleRemoveCompany(wl.id, c.id); }}
-                          className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <X className="w-2.5 h-2.5" />
-                        </button>
-                        <Building2 className="w-4 h-4 text-muted-foreground mb-1" />
-                        <p className="text-[11px] font-medium text-foreground truncate">{c.name}</p>
-                        <p className="text-[10px] font-mono text-muted-foreground">{c.ticker}</p>
-                        <p className={`text-[11px] font-mono mt-0.5 ${c.changePercent >= 0 ? "text-chart-up" : "text-chart-down"}`}>
-                          {c.changePercent >= 0 ? "+" : ""}{c.changePercent.toFixed(2)}%
-                        </p>
-                      </div>
-                    ))}
-                    {wlCompanies.length < 6 && available.length > 0 && (
-                      <div className="border border-dashed border-border rounded-md p-2.5 flex items-center justify-center">
-                        <select
-                          onChange={(e) => { if (e.target.value) handleAddCompany(wl.id, e.target.value); e.target.value = ""; }}
-                          className="bg-transparent text-[11px] text-muted-foreground outline-none cursor-pointer w-full"
-                          defaultValue=""
-                        >
-                          <option value="" disabled>+ Add company</option>
-                          {available.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                        </select>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        {lists.isPending ? (
+          <LoadingBox label="Loading watchlists…" />
+        ) : lists.isError ? (
+          <div className="border border-border rounded-md bg-card"><ErrorBox error={lists.error} onRetry={() => lists.refetch()} title="Could not load watchlists" /></div>
+        ) : lists.data.length === 0 ? (
+          <div className="border border-border rounded-md bg-card"><EmptyBox title="No watchlists yet">Create a watchlist, then search for companies to add to it.</EmptyBox></div>
+        ) : (
+          <div className="space-y-5">{lists.data.map((wl) => <WatchlistCard key={wl.id} wl={wl} />)}</div>
+        )}
       </div>
-    </div>
+    </Layout>
   );
 };
 

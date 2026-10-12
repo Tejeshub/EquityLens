@@ -1,66 +1,83 @@
-import { companies, Company } from "@/data/dummyData";
+import { fmtDateTime, fmtReported, isNum, NA_SHORT } from "@/lib/format";
+import { reasonText } from "@/lib/reasons";
+import { InfoBanner, SourceLine } from "@/components/DataStates";
+import NumText from "@/components/NumText";
+import type { CompareResponse } from "@/types/api";
 
-const metrics = [
-  { key: "price", label: "Price (₹)", format: (v: number) => `₹${v.toLocaleString()}` },
-  { key: "pe", label: "P/E Ratio", format: (v: number) => v.toFixed(1) },
-  { key: "roe", label: "ROE (%)", format: (v: number) => `${v}%`, higherBetter: true },
-  { key: "roce", label: "ROCE (%)", format: (v: number) => `${v}%`, higherBetter: true },
-  { key: "debtToEquity", label: "D/E Ratio", format: (v: number) => v.toFixed(2), higherBetter: false },
-  { key: "promoterHolding", label: "Promoter (%)", format: (v: number) => `${v}%`, higherBetter: true },
-  { key: "overallScore", label: "Overall Score", format: (v: number) => `${v}/100`, higherBetter: true },
-  { key: "confidenceScore", label: "Confidence", format: (v: number) => `${v}%`, higherBetter: true },
-  { key: "marketCap", label: "Market Cap", format: (v: string) => v },
-  { key: "beta", label: "Beta", format: (v: number) => v.toFixed(2) },
-  { key: "dividend", label: "Div Yield (%)", format: (v: number) => `${v}%`, higherBetter: true },
-] as const;
+export const STATEMENT_LABELS: Record<string, string> = {
+  quarterly_results: "Quarterly results",
+  profit_loss: "Profit & loss",
+  ratios: "Ratios",
+  balance_sheet: "Balance sheet",
+  shareholding: "Shareholding",
+};
 
-const ComparisonTable = ({ companyIds }: { companyIds: string[] }) => {
-  const selected = companies.filter((c) => companyIds.includes(c.id));
-
-  const getRank = (metric: (typeof metrics)[number], company: Company) => {
-    if (!("higherBetter" in metric)) return null;
-    const key = metric.key as keyof Company;
-    const values = selected.map((c) => c[key] as number);
-    const sorted = [...values].sort((a, b) => metric.higherBetter ? b - a : a - b);
-    return sorted.indexOf(company[key] as number) + 1;
-  };
-
+const ComparisonTable = ({ data }: { data: CompareResponse }) => {
+  const periods = new Set(data.companies.filter((c) => c.status === "ok" && c.period).map((c) => c.period));
+  const periodsDiffer = periods.size > 1;
   return (
-    <div className="border border-border rounded-md bg-card overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-border bg-secondary/40">
-            <th className="text-left py-2.5 px-4 text-[11px] font-medium text-muted-foreground uppercase tracking-wider sticky left-0 bg-secondary/40">Metric</th>
-            {selected.map((c) => (
-              <th key={c.id} className="text-center py-2.5 px-4 min-w-[130px]">
-                <p className="text-xs font-semibold text-foreground">{c.ticker}</p>
-                <p className="text-[10px] text-muted-foreground font-normal">{c.name}</p>
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {metrics.map((m) => (
-            <tr key={m.key} className="border-b border-border/50 hover:bg-secondary/20">
-              <td className="py-2 px-4 text-xs font-medium text-muted-foreground sticky left-0 bg-card">{m.label}</td>
-              {selected.map((c) => {
-                const val = c[m.key as keyof Company];
-                const rank = getRank(m, c);
-                return (
-                  <td key={c.id} className="py-2 px-4 text-center font-mono text-xs text-foreground">
-                    <span>{m.format(val as never)}</span>
-                    {rank && (
-                      <span className={`ml-1 text-[10px] ${rank === 1 ? "text-chart-up font-semibold" : rank === selected.length ? "text-chart-down" : "text-muted-foreground"}`}>
-                        #{rank}
+    <div className="border border-border rounded-md bg-card">
+      <div className="px-4 py-3 border-b border-border">
+        <h3 className="text-sm font-semibold text-foreground">Reported metrics comparison</h3>
+        <p className="text-[11px] text-muted-foreground mt-0.5">
+          {STATEMENT_LABELS[data.statement] ?? data.statement.replace(/_/g, " ")}
+          {data.period ? ` · period ${data.period}` : periodsDiffer ? " · latest period differs between companies" : ""}.
+          {" "}Values are as reported by the source; no ranking or scoring is applied.
+        </p>
+      </div>
+      {data.rows.length === 0 ? (
+        <p className="p-6 text-center text-xs text-muted-foreground">The source returned no comparable metrics for these companies.</p>
+      ) : (
+        <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Comparison table (scrollable)">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border bg-secondary/40">
+                <th className="text-left py-2 px-4 text-[11px] font-medium text-muted-foreground uppercase tracking-wider align-top">Metric</th>
+                {data.companies.map((c) => {
+                  const ok = c.status === "ok";
+                  return (
+                    <th key={c.company_id} className="text-right py-2 px-4 text-[11px] font-medium text-muted-foreground uppercase tracking-wider align-top">
+                      {c.name}<span className="block normal-case font-mono">{c.symbol}</span>
+                      <span
+                        data-testid={`status-${c.company_id}`}
+                        title={ok ? undefined : reasonText(c.reason)}
+                        className={`inline-block mt-1 normal-case px-1.5 py-0.5 rounded text-[10px] font-medium ${ok ? "bg-secondary text-secondary-foreground" : "bg-warning/15 text-warning"}`}
+                      >
+                        {ok ? "Data available" : "Unavailable"}
                       </span>
-                    )}
-                  </td>
-                );
-              })}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+                      {!ok && <span className="block normal-case font-normal text-[10px] mt-0.5 max-w-[14rem] ml-auto">{reasonText(c.reason)}</span>}
+                      {ok && (periodsDiffer || !data.period) && c.period && <span className="block normal-case font-mono font-normal text-[10px] mt-0.5">period {c.period}</span>}
+                      {ok && c.basis && <span className="block normal-case font-normal text-[10px] capitalize">{c.basis}</span>}
+                    </th>
+                  );
+                })}
+              </tr>
+            </thead>
+            <tbody>
+              {data.rows.map((r) => (
+                <tr key={r.metric} className="border-b border-border/50 hover:bg-secondary/30">
+                  <td className="py-2 px-4 text-xs text-foreground whitespace-nowrap">{r.metric}{r.unit ? <span className="text-muted-foreground"> ({r.unit})</span> : null}</td>
+                  {data.companies.map((c) => {
+                    const v = r.values[c.company_id];
+                    return (
+                      <td key={c.company_id} className={`py-2 px-4 text-right font-mono text-xs ${isNum(v) ? "text-foreground" : "text-muted-foreground"}`}>
+                        <NumText text={isNum(v) ? fmtReported(v) : NA_SHORT} />
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <div className="px-4 py-3 space-y-1.5">
+        {periodsDiffer && <InfoBanner tone="warn">The companies report different latest periods; compare values with care.</InfoBanner>}
+        {data.basis_note && <InfoBanner>{data.basis_note}</InfoBanner>}
+        {data.notice && <InfoBanner>{data.notice}</InfoBanner>}
+        <SourceLine source={data.source} retrievedAt={data.retrieved_at} />
+        {data.retrieved_at && <span className="sr-only">{fmtDateTime(data.retrieved_at)}</span>}
+      </div>
     </div>
   );
 };

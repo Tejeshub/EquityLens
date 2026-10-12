@@ -1,81 +1,86 @@
-import { Company } from "@/data/dummyData";
-import { TrendingUp, TrendingDown, Shield, Target, Users, AlertTriangle } from "lucide-react";
+import { TrendingUp, TrendingDown } from "lucide-react";
+import type { UseQueryResult } from "@tanstack/react-query";
+import type { Company, Quote } from "@/types/api";
+import { ErrorBox, InfoBanner, SourceDisabledNotice, SourceLine } from "@/components/DataStates";
+import NumText from "@/components/NumText";
+import { useSource } from "@/hooks/useCapabilities";
+import { NA_SHORT, fmtNumber, fmtPercent, fmtPrice, fmtVolume, isNum, signClass } from "@/lib/format";
 
-const CompanyOverview = ({ company, isAnalyzing = false }: { company: Company; isAnalyzing?: boolean }) => {
-  const metrics = [
-    { label: "Market Cap", value: company.marketCap },
-    { label: "P/E Ratio", value: company.pe.toFixed(1) },
-    { label: "EPS", value: `₹${company.eps.toFixed(2)}` },
-    { label: "52W High", value: `₹${company.weekHigh52.toLocaleString()}` },
-    { label: "52W Low", value: `₹${company.weekLow52.toLocaleString()}` },
-    { label: "Volume", value: company.volume },
-    { label: "Beta", value: company.beta.toFixed(2) },
-    { label: "D/E", value: company.debtToEquity.toFixed(2) },
-    { label: "ROE", value: `${company.roe}%` },
-    { label: "ROCE", value: `${company.roce}%` },
-    { label: "Promoter Hold", value: `${company.promoterHolding}%` },
-    { label: "Dividend Yield", value: `${company.dividend}%` },
-  ];
+const CompanyOverview = ({ company, quote }: { company: Company; quote: UseQueryResult<Quote> }) => {
+  const market = useSource("market_data");
+  const q = market.state === "enabled" ? quote.data : undefined;
+  const up = q && isNum(q.change_percent) && q.change_percent !== 0 ? q.change_percent > 0 : null;
+  const colour = signClass(q?.change_percent);
+  const priceLabel = market.caps?.market_data.provider ? `Delayed – ${market.caps.market_data.provider}` : "Delayed";
+
+  const metrics = q
+    ? [
+        { label: "Previous Close", value: fmtPrice(q.previous_close, q.currency) },
+        { label: "52W High", value: fmtPrice(q.week52_high, q.currency) },
+        { label: "52W Low", value: fmtPrice(q.week52_low, q.currency) },
+        { label: "Volume", value: fmtVolume(q.volume) },
+      ]
+    : [];
 
   return (
     <div className="space-y-4">
-      <div className="flex items-start justify-between">
-        <div>
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
           <h1 className="text-xl font-bold text-foreground">{company.name}</h1>
-          <div className="flex items-center gap-2 mt-1">
-            <span className="text-xs font-mono text-muted-foreground">{company.ticker}</span>
-            <span className="text-[11px] px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground">{company.sector}</span>
-            <span className={`text-[11px] px-1.5 py-0.5 rounded ${company.cap === "Small Cap" ? "bg-primary/8 text-primary" : "bg-warning/10 text-warning"}`}>{company.cap}</span>
+          <div className="flex flex-wrap items-center gap-2 mt-1">
+            <span className="text-xs font-mono text-muted-foreground">{company.primary_symbol}</span>
+            <span className="text-[11px] px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground">{company.exchange}</span>
+            {company.sector && <span className="text-[11px] px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground">{company.sector}</span>}
+            {company.isin && <span className="text-[11px] font-mono text-muted-foreground">{company.isin}</span>}
           </div>
         </div>
-        <div className="text-right">
-          <p className="text-2xl font-bold font-mono text-foreground">₹{company.price.toLocaleString()}</p>
-          <div className={`flex items-center gap-1 justify-end ${company.changePercent >= 0 ? "text-chart-up" : "text-chart-down"}`}>
-            {company.changePercent >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
-            <span className="font-mono text-sm">
-              {company.changePercent >= 0 ? "+" : ""}₹{company.change.toFixed(2)} ({company.changePercent >= 0 ? "+" : ""}{company.changePercent.toFixed(2)}%)
-            </span>
-          </div>
-        </div>
+        {market.state !== "disabled" && <div className="text-right">
+          {quote.isPending ? (
+            <p className="text-xs text-muted-foreground" role="status">Loading price…</p>
+          ) : q ? (
+            <>
+              <p className="text-2xl font-bold font-mono text-foreground"><NumText text={fmtPrice(q.price, q.currency)} /></p>
+              <div className={`flex items-center gap-1 justify-end ${colour}`}>
+                {up === null ? null : up ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
+                <span className="font-mono text-sm">
+                  <NumText text={isNum(q.change) ? `${q.change > 0 ? "+" : ""}${fmtNumber(q.change)}` : NA_SHORT} /> (<NumText text={fmtPercent(q.change_percent)} />)
+                </span>
+              </div>
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">Price unavailable</p>
+          )}
+        </div>}
       </div>
 
-      {!isAnalyzing && (
+      {market.state === "disabled" && <SourceDisabledNotice title="Market prices are not shown" reason={market.reason} />}
+
+      {market.state === "enabled" && quote.isError && <div className="border border-border rounded-md"><ErrorBox error={quote.error} onRetry={() => quote.refetch()} title="Price data unavailable" /></div>}
+
+      {q && (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-px bg-border rounded-md overflow-hidden border border-border">
+          {q.provenance.stale && <InfoBanner tone="warn">This price is stale. The latest refresh failed or is outdated.</InfoBanner>}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-border rounded-md overflow-hidden border border-border">
             {metrics.map(({ label, value }) => (
               <div key={label} className="bg-card p-2.5">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</p>
-                <p className="text-sm font-semibold font-mono text-foreground mt-0.5">{value}</p>
+                <p className="text-sm font-semibold font-mono text-foreground mt-0.5"><NumText text={value} /></p>
               </div>
             ))}
           </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <ScorePill icon={Target} label="Industry Position" score={8.2} />
-            <ScorePill icon={Shield} label="Financial Quality" score={7.8} />
-            <ScorePill icon={Users} label="Mgmt Credibility" score={6.5} />
-            <ScorePill icon={AlertTriangle} label="Risk Score" score={7} />
-          </div>
+          <SourceLine
+            label={priceLabel}
+            source={q.provenance.source}
+            asOf={q.as_of}
+            retrievedAt={q.provenance.fetched_at}
+            cached={q.provenance.cached}
+            stale={q.provenance.stale}
+            note={[q.change_basis ? `Change basis: ${q.change_basis}` : "", q.provenance.note ?? ""].filter(Boolean).join(" · ") || null}
+          />
         </>
       )}
     </div>
   );
 };
-
-const ScorePill = ({ icon: Icon, label, score }: { icon: any; label: string; score: number }) => (
-  <div className="border border-border rounded-md p-2.5 flex items-center gap-2.5">
-    <Icon className="w-4 h-4 text-muted-foreground" />
-    <div className="flex-1">
-      <p className="text-[10px] text-muted-foreground">{label}</p>
-      <div className="flex items-center gap-1.5">
-        <p className="text-base font-bold font-mono text-foreground">{score}</p>
-        <span className="text-[10px] text-muted-foreground">/10</span>
-      </div>
-    </div>
-    <div className="w-10 h-1 bg-secondary rounded-full overflow-hidden">
-      <div className="h-full rounded-full bg-primary" style={{ width: `${score * 10}%` }} />
-    </div>
-  </div>
-);
 
 export default CompanyOverview;
