@@ -1,7 +1,7 @@
 {
   "rewrites": [
-    { "source": "/api/:path*", "destination": "RENDER_BACKEND_URL/api/:path*" },
-    { "source": "/auth/:path*", "destination": "RENDER_BACKEND_URL/auth/:path*" },
+    { "source": "/api/:path*", "destination": "https://equitylens-iuwl.onrender.com/api/:path*" },
+    { "source": "/auth/:path*", "destination": "https://equitylens-iuwl.onrender.com/auth/:path*" },
     { "source": "/((?!api/|auth/|assets/).*)", "destination": "/index.html" }
   ],
   "headers": [
