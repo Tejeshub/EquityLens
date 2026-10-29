@@ -199,8 +199,9 @@ test.describe("login / logout / sessions", () => {
     try {
       await db.query("UPDATE auth_sessions SET expires_at = now() - interval '1 minute' WHERE user_id = (SELECT id FROM users WHERE email = $1)", [u.email]);
     } finally { await db.end(); }
-    await page.goto("/");
-    await expect(page).toHaveURL(/\/login$/);
+    // "/" is the public landing page; a protected route is what must bounce an expired session.
+    await page.goto("/watchlists");
+    await expect(page).toHaveURL(/\/login\?next=%2Fwatchlists$/);
   });
 
   test("CSRF: an authenticated unsafe request without (or with a wrong) X-CSRF-Token is refused with 403; with it, it succeeds", async ({ page }) => {
