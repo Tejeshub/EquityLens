@@ -87,9 +87,9 @@ const SearchBar = () => {
     : `${items.length} ${items.length === 1 ? "result" : "results"}`;
 
   return (
-    <div ref={containerRef} className="w-full max-w-xl mx-auto relative text-left">
-      <div className="border border-border rounded-md flex items-center gap-2 bg-card shadow-sm focus-within:border-primary/40 focus-within:shadow-[0_0_0_2px_hsl(var(--primary)/0.08)] transition-all">
-        <Search className="w-4 h-4 text-muted-foreground ml-3" aria-hidden />
+    <div ref={containerRef} className="w-full max-w-2xl mx-auto relative text-left">
+      <div className="border border-input rounded-md flex items-center gap-2 bg-card shadow-pop focus-within:border-foreground focus-within:ring-2 focus-within:ring-foreground/10 transition-all">
+        <Search className="w-4 h-4 text-muted-foreground ml-4" aria-hidden />
         <input
           ref={inputRef}
           role="combobox"
@@ -106,7 +106,7 @@ const SearchBar = () => {
           onFocus={() => setShowResults(true)}
           onKeyDown={onKeyDown}
           placeholder="Search by company name or NSE symbol..."
-          className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground outline-none text-sm py-2.5"
+          className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground outline-none text-base py-4"
         />
         {loading && search.hasCriteria && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" aria-label="Searching" />}
         {query && (
@@ -120,7 +120,7 @@ const SearchBar = () => {
             aria-label="Toggle filters"
             aria-expanded={showFilters}
             onClick={() => setShowFilters(!showFilters)}
-            className={`p-2 mr-1 rounded transition-colors ${showFilters ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+            className={`p-2.5 mr-2 rounded-full transition-colors ${showFilters ? "bg-peach text-sienna" : "text-muted-foreground hover:text-foreground hover:bg-peach/50"}`}
           >
             <Filter className="w-4 h-4" />
           </button>
@@ -130,14 +130,14 @@ const SearchBar = () => {
       <div role="status" aria-live="polite" className="sr-only">{announcement}</div>
 
       {segmentsOn && showFilters && (
-        <div className="border border-border rounded-md bg-card shadow-sm mt-1.5 p-3 animate-fade-in">
+        <div className="border border-border rounded-lg bg-card shadow-pop mt-2 p-4 animate-fade-in">
           <div className="flex flex-wrap gap-6">
             <div>
               <p className="metric-label mb-1.5 flex items-center gap-1"><BarChart className="w-3 h-3" /> Market Cap</p>
               <div className="flex gap-1">
                 {segments.map((s) => (
                   <button type="button" key={s.label} aria-pressed={segment === s.value} onClick={() => { setSegment(s.value); setShowResults(true); }}
-                    className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${segment === s.value ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-accent"}`}
+                    className={`px-3.5 py-1.5 rounded-full text-xs transition-colors ${segment === s.value ? "bg-peach text-sienna" : "bg-secondary text-secondary-foreground hover:bg-peach/50"}`}
                   >{s.label}</button>
                 ))}
               </div>
@@ -145,14 +145,14 @@ const SearchBar = () => {
             <div>
               <label htmlFor="sector-filter" className="metric-label mb-1.5 flex items-center gap-1"><Tag className="w-3 h-3" /> Sector</label>
               <input id="sector-filter" value={sector} maxLength={SECTOR_MAX_LEN} onChange={(e) => { setSector(e.target.value); setShowResults(true); }} placeholder="e.g. Chemicals"
-                className="bg-card border border-border rounded-md px-2.5 py-1 text-xs outline-none focus:ring-1 focus:ring-primary/30 text-foreground" />
+                className="bg-card border border-input rounded-full px-4 py-1.5 text-xs outline-none focus:border-foreground focus:ring-2 focus:ring-foreground/10 text-foreground" />
             </div>
           </div>
         </div>
       )}
 
       {popupOpen && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-md shadow-lg max-h-80 overflow-y-auto scrollbar-thin z-50 animate-fade-in">
+        <div className="absolute top-full left-0 right-0 mt-2 bg-card rounded-md shadow-float max-h-80 overflow-y-auto scrollbar-thin z-50 animate-fade-in">
           {search.isError ? (
             <ErrorBox error={search.error} onRetry={() => search.refetch()} title="Search failed" />
           ) : !settled ? (
@@ -171,9 +171,9 @@ const SearchBar = () => {
                     onMouseDown={(e) => e.preventDefault()}
                     onMouseEnter={() => setActive(i)}
                     onClick={() => open(c.id)}
-                    className={`w-full flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors text-left border-b border-border/50 last:border-0 ${i === active ? "bg-secondary/80" : "hover:bg-secondary/60"}`}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors text-left border-b border-border/50 last:border-0 ${i === active ? "bg-peach/60" : "hover:bg-peach/30"}`}
                   >
-                    <div className="w-8 h-8 rounded bg-secondary flex items-center justify-center">
+                    <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center">
                       <Building2 className="w-4 h-4 text-muted-foreground" aria-hidden />
                     </div>
                     <div className="flex-1 min-w-0">

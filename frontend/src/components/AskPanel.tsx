@@ -27,18 +27,18 @@ const AskForm = ({ companyId }: { companyId: string }) => {
   return (
     <div className="space-y-4 max-w-3xl">
       <div>
-        <h3 className="text-sm font-semibold text-foreground">Ask about this company</h3>
+        <h3 className="text-base font-medium text-foreground">Ask about this company</h3>
         <p className="text-[11px] text-muted-foreground">Answers are AI-generated. Check whether an answer is document-grounded and review its citations.</p>
       </div>
       <form onSubmit={submit} className="space-y-2">
         <label htmlFor="ask-q" className="sr-only">Your question</label>
         <textarea id="ask-q" value={question} onChange={(e) => setQuestion(e.target.value)} maxLength={MAX} rows={3}
           placeholder="e.g. What did management say about margins?"
-          className="w-full bg-card border border-border rounded-md px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary/30 text-foreground" />
+          className="w-full bg-card border border-border rounded-md px-3 py-2 text-sm outline-none focus:border-foreground focus:ring-2 focus:ring-foreground/10 text-foreground" />
         <div className="flex items-center justify-between">
           <span className="text-[11px] text-muted-foreground">{question.length}/{MAX}</span>
           <button type="submit" disabled={ask.isPending || !question.trim()}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed">
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed">
             {ask.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />} Ask
           </button>
         </div>
@@ -49,7 +49,7 @@ const AskForm = ({ companyId }: { companyId: string }) => {
         : <div className="border border-border rounded-md"><ErrorBox error={ask.error} title="Could not get an answer" /></div>)}
 
       {d && (
-        <div className="border border-border rounded-md bg-card p-4 space-y-3">
+        <div className="border border-border rounded-lg bg-card p-4 space-y-3">
           {!d.grounded && (
             <div role="alert"><InfoBanner tone="warn"><span className="font-semibold">Not document-grounded.</span> This answer is not supported by retrieved company documents. Treat it as unverified.</InfoBanner></div>
           )}
@@ -85,7 +85,7 @@ const AskPanel = ({ companyId }: { companyId: string }) => {
   if (ai.state === "disabled") {
     return (
       <div className="space-y-3 max-w-3xl">
-        <h3 className="text-sm font-semibold text-foreground">Ask about this company</h3>
+        <h3 className="text-base font-medium text-foreground">Ask about this company</h3>
         <SourceDisabledNotice title="Copilot is not available" reason={ai.reason} />
       </div>
     );

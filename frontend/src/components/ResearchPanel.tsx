@@ -31,7 +31,7 @@ const Dimension = ({ dim }: { dim: ResearchDimension }) => (
       <div>
         <p className="font-medium text-sm text-foreground">{dim.title}</p>
         <div className="flex flex-wrap items-center gap-1.5 mt-1">
-          <span className={`text-[10px] px-1.5 py-0.5 rounded ${dim.status === "ok" ? "bg-secondary text-secondary-foreground" : "bg-warning/15 text-warning font-medium"}`}>
+          <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${dim.status === "ok" ? "bg-secondary text-secondary-foreground" : "bg-warning/15 text-warning font-medium"}`}>
             {dim.status === "ok" ? "Analysed" : dim.status === "unavailable" ? "Unavailable" : "Failed"}
           </span>
           {dim.position && <span className={`text-[10px] px-1.5 py-0.5 rounded ${positionStyle[dim.position] ?? positionStyle.neutral}`}>{dim.position}</span>}
@@ -124,19 +124,19 @@ export const ResearchReportView = ({ report }: { report: ResearchReport }) => (
     </div>
 
     <div>
-      <h3 className="text-sm font-semibold text-foreground mb-3">Analysis dimensions</h3>
+      <h3 className="text-base font-medium text-foreground mb-3">Analysis dimensions</h3>
       <div className="space-y-3">{report.dimensions.map((d) => <Dimension key={d.key} dim={d} />)}</div>
     </div>
 
     {report.limitations.length > 0 && (
       <div>
-        <h3 className="text-sm font-semibold text-foreground mb-2">Overall limitations</h3>
+        <h3 className="text-base font-medium text-foreground mb-2">Overall limitations</h3>
         <ul className="text-xs text-muted-foreground list-disc pl-4 space-y-0.5">{report.limitations.map((l, i) => <li key={i}>{l}</li>)}</ul>
       </div>
     )}
 
     <div>
-      <h3 className="text-sm font-semibold text-foreground mb-2">Sources</h3>
+      <h3 className="text-base font-medium text-foreground mb-2">Sources</h3>
       {report.sources.length === 0 ? (
         <p className="text-xs text-muted-foreground">No sources were recorded for this report.</p>
       ) : (
@@ -185,13 +185,13 @@ const ResearchRunner = ({ companyId }: { companyId: string }) => {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="text-sm font-semibold text-foreground">AI research</h3>
+          <h3 className="text-base font-medium text-foreground">AI research</h3>
           <p className="text-[11px] text-muted-foreground">Generated only when you request it, in the background (usually under a minute). It counts toward a daily per-user limit unless identical evidence is reused.</p>
         </div>
         <button
           onClick={run.start}
           disabled={run.busy || run.active || endpointMissing}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {run.busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
           {report ? "Regenerate research" : "Generate research"}
@@ -199,27 +199,27 @@ const ResearchRunner = ({ companyId }: { companyId: string }) => {
       </div>
 
       {run.busy && (
-        <div className="border border-border rounded-md bg-card p-4 flex items-center gap-2 text-xs text-foreground" role="status">
+        <div className="border border-border rounded-lg bg-card p-4 flex items-center gap-2 text-xs text-foreground" role="status">
           <Loader2 className="w-4 h-4 animate-spin text-primary" />
           {run.starting ? "Starting research…" : run.job?.status === "queued" ? "Research is queued…" : "Research is running…"}
         </div>
       )}
 
       {run.active && run.slow && (
-        <div className="border border-border rounded-md bg-card p-4 space-y-2" role="status">
+        <div className="border border-border rounded-lg bg-card p-4 space-y-2" role="status">
           <p className="text-xs text-foreground">This is taking longer than expected. The research is still running on the server.</p>
           <button onClick={run.checkAgain} className="text-xs text-primary underline">Check again</button>
         </div>
       )}
 
       {run.active && run.pollError != null && (
-        <div className="border border-border rounded-md bg-card">
+        <div className="border border-border rounded-lg bg-card">
           <ErrorBox error={run.pollError} onRetry={run.checkAgain} title="Could not check research progress" />
         </div>
       )}
 
       {failed && (
-        <div className="border border-border rounded-md bg-card">
+        <div className="border border-border rounded-lg bg-card">
           <ErrorBox error={new ApiError({ status: 0, code: failed.error?.code ?? null, message: failed.error?.message || "The research job failed." })} title={failureTitle(failed.error?.code)} />
         </div>
       )}
@@ -235,11 +235,11 @@ const ResearchRunner = ({ companyId }: { companyId: string }) => {
       ) : report ? (
         <ResearchReportView report={report} />
       ) : endpointMissing ? (
-        <div className="border border-border rounded-md bg-card"><EmptyBox title="AI research unavailable">{NOT_AVAILABLE_YET} The rest of this page is unaffected.</EmptyBox></div>
+        <div className="border border-border rounded-lg bg-card"><EmptyBox title="AI research unavailable">{NOT_AVAILABLE_YET} The rest of this page is unaffected.</EmptyBox></div>
       ) : noneYet ? (
-        <div className="border border-border rounded-md bg-card"><EmptyBox title="No saved research for this company">Use "Generate research" to create a report. Nothing has been generated yet.</EmptyBox></div>
+        <div className="border border-border rounded-lg bg-card"><EmptyBox title="No saved research for this company">Use "Generate research" to create a report. Nothing has been generated yet.</EmptyBox></div>
       ) : latest.isError ? (
-        <div className="border border-border rounded-md bg-card"><ErrorBox error={latest.error} onRetry={() => latest.refetch()} title="Could not check for saved research" /></div>
+        <div className="border border-border rounded-lg bg-card"><ErrorBox error={latest.error} onRetry={() => latest.refetch()} title="Could not check for saved research" /></div>
       ) : null}
     </div>
   );
@@ -252,7 +252,7 @@ const ResearchPanel = ({ companyId }: { companyId: string }) => {
   if (ai.state === "disabled") {
     return (
       <div className="space-y-3">
-        <h3 className="text-sm font-semibold text-foreground">AI research</h3>
+        <h3 className="text-base font-medium text-foreground">AI research</h3>
         <SourceDisabledNotice title="AI research is not available" reason={ai.reason} />
       </div>
     );

@@ -10,14 +10,14 @@ const NewsFeed = ({ companyId }: { companyId: string }) => {
   const d = news.data;
 
   return (
-    <div className="border border-border rounded-md bg-card">
+    <div className="border border-border rounded-lg bg-card">
       <div className="px-4 py-3 border-b border-border">
-        <h3 className="text-sm font-semibold text-foreground">Latest News</h3>
+        <h3 className="text-base font-medium text-foreground">Latest News</h3>
       </div>
       {source.state === "disabled" ? (
         <div className="p-3"><SourceDisabledNotice reason={source.reason} /></div>
       ) : source.state === "loading" || news.isPending ? (
-        <LoadingBox label="Loading news…" />
+        <LoadingBox label="Loading news…" variant="list" />
       ) : news.isError ? (
         <ErrorBox error={news.error} onRetry={() => news.refetch()} title="News unavailable" />
       ) : d && d.items.length === 0 ? (

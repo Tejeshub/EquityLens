@@ -45,7 +45,7 @@ const CompanyPicker = ({ existingIds, disabled, onPick }: Props) => {
                       disabled={disabled || already}
                       onClick={() => onPick(c.id)}
                       aria-label={already ? `${c.name} already added` : `Add ${c.name}`}
-                      className="flex items-center gap-1 px-2 py-1 rounded bg-secondary text-secondary-foreground text-[11px] hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex items-center gap-1 px-2 py-1 rounded-full bg-secondary text-secondary-foreground text-[11px] hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <Plus className="w-3 h-3" /> {already ? "Added" : "Add"}
                     </button>

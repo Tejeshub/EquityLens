@@ -31,17 +31,17 @@ const CompanyDetail = () => {
   return (
     <Layout title={company.data?.name ?? (notFound ? "Company not found" : "Company")}>
       <div>
-        <div className="container mx-auto px-4 py-5">
+        <div className="container mx-auto px-4 py-10">
           {company.isPending ? (
-            <LoadingBox label="Loading company…" />
+            <LoadingBox label="Loading company…" variant="list" />
           ) : notFound ? (
-            <div className="border border-border rounded-md bg-card p-8 text-center" role="alert">
-              <h1 className="text-lg font-bold text-foreground">Company not found</h1>
+            <div className="border border-border rounded-lg bg-card p-8 text-center" role="alert">
+              <h1 className="text-3xl md:text-4xl text-foreground">Company not found</h1>
               <p className="text-xs text-muted-foreground mt-1">No company matches this link.</p>
               <Link to="/" className="text-xs text-primary hover:underline mt-3 inline-block">Search for a company</Link>
             </div>
           ) : company.isError ? (
-            <div className="border border-border rounded-md bg-card"><ErrorBox error={company.error} onRetry={() => company.refetch()} title="Could not load this company" /></div>
+            <div className="border border-border rounded-lg bg-card"><ErrorBox error={company.error} onRetry={() => company.refetch()} title="Could not load this company" /></div>
           ) : c ? (
             <>
               <CompanyOverview company={c} quote={quote} />

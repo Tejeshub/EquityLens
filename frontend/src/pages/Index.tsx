@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { TrendingUp, TrendingDown, Building2, BarChart3, Sparkles, Search, Newspaper, Bot, MessageSquare, List } from "lucide-react";
 import SearchBar from "@/components/SearchBar";
 import Layout from "@/components/Layout";
+import { Reveal } from "@/landing/Reveal";
 import NumText from "@/components/NumText";
 import { EmptyBox, ErrorBox, InfoBanner, LoadingBox, SourceDisabledNotice, SourceLine } from "@/components/DataStates";
 import { useMovers } from "@/hooks/queries";
@@ -17,13 +18,13 @@ const SEGMENTS: { value: Segment; label: string }[] = [
 ];
 
 const MoverList = ({ items, up }: { items: Mover[]; up: boolean }) => (
-  <div className="border border-border rounded-md divide-y divide-border bg-card">
+  <div className="border border-border rounded-lg divide-y divide-border bg-card overflow-hidden">
     {items.length === 0 ? (
       <EmptyBox title={up ? "No gainers" : "No losers"}>No symbols in this segment qualified from the current data.</EmptyBox>
     ) : (
       items.map((c) => (
-        <Link key={c.company_id} to={`/company/${encodeURIComponent(c.company_id)}`} className="w-full px-4 py-2.5 flex items-center gap-3 text-left hover:bg-secondary/40 transition-colors">
-          <div className={`w-8 h-8 rounded ${up ? "bg-chart-up/8" : "bg-chart-down/8"} flex items-center justify-center`}>
+        <Link key={c.company_id} to={`/company/${encodeURIComponent(c.company_id)}`} className="w-full px-5 py-3 flex items-center gap-3 text-left hover:bg-fog transition-colors">
+          <div className={`w-9 h-9 rounded-full ${up ? "bg-chart-up/8" : "bg-chart-down/8"} flex items-center justify-center`}>
             <Building2 className={`w-4 h-4 ${up ? "text-chart-up" : "text-chart-down"}`} aria-hidden />
           </div>
           <div className="flex-1 min-w-0">
@@ -52,21 +53,21 @@ const WhatIsAvailable = ({ caps, notice }: { caps: Capabilities; notice?: ReactN
   const features = FEATURES.filter((f) => f.needs === null || (f.needs === "news" ? caps.news.enabled : caps.ai.research));
   const noSource = !caps.market_data.enabled && !caps.fundamentals.enabled && !caps.news.enabled && !caps.index_segments.enabled;
   return (
-    <section className="container mx-auto px-4 py-8 space-y-5" aria-label="What is available">
+    <section className="container mx-auto px-4 py-16 space-y-6" aria-label="What is available">
       {notice}
       {noSource && (
-        <p data-testid="no-sources" className="text-sm text-foreground">
+        <p data-testid="no-sources" className="surface-peach p-6 text-base leading-relaxed">
           In this deployment no data source is enabled. There are no prices, charts, financials, news, AI research or Copilot answers here.
           What exists: company search (name, symbol and ISIN only), watchlists (company names only) and your account.
         </p>
       )}
-      <h2 className="text-sm font-semibold text-foreground">What you can do here</h2>
-      <ul className="grid sm:grid-cols-2 lg:grid-cols-5 gap-3">
+      <h2 className="text-3xl md:text-4xl text-foreground">What you can do here</h2>
+      <ul className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {features.map(({ icon: Icon, title, text }) => (
-          <li key={title} className="border border-border rounded-md bg-card p-3">
-            <Icon className="w-4 h-4 text-primary mb-1.5" aria-hidden />
-            <p className="text-[13px] font-medium text-foreground">{title}</p>
-            <p className="text-[11px] text-muted-foreground mt-0.5">{text}</p>
+          <li key={title} className="rounded-lg bg-peach/40 p-5">
+            <Icon className="w-5 h-5 text-sienna mb-4" aria-hidden />
+            <p className="text-base font-medium text-foreground">{title}</p>
+            <p className="text-sm text-muted-foreground mt-1.5 leading-snug">{text}</p>
           </li>
         ))}
       </ul>
@@ -88,13 +89,13 @@ const Movers = () => {
   }
 
   return (
-    <section className="container mx-auto px-4 py-8">
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-        <h2 className="text-sm font-semibold text-foreground">Market movers</h2>
+    <section className="container mx-auto px-4 py-16">
+      <div className="flex flex-wrap items-end justify-between gap-4 mb-8">
+        <h2 className="text-3xl md:text-4xl text-foreground">Market movers</h2>
         <div className="flex gap-1" role="group" aria-label="Market segment">
           {SEGMENTS.map((s) => (
             <button key={s.value} aria-pressed={segment === s.value} onClick={() => setSegment(s.value)}
-              className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${segment === s.value ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-accent"}`}>
+              className={`px-4 py-2 rounded-full text-sm transition-colors duration-200 ${segment === s.value ? "bg-peach text-sienna" : "bg-secondary text-secondary-foreground hover:bg-peach/50"}`}>
               {s.label}
             </button>
           ))}
@@ -102,9 +103,9 @@ const Movers = () => {
       </div>
 
       {movers.isPending ? (
-        <div className="border border-border rounded-md bg-card"><LoadingBox label="Loading movers…" /></div>
+        <div className="border border-border rounded-lg bg-card"><LoadingBox label="Loading movers…" variant="list" /></div>
       ) : movers.isError ? (
-        <div className="border border-border rounded-md bg-card"><ErrorBox error={movers.error} onRetry={() => movers.refetch()} title="Could not load market movers" /></div>
+        <div className="border border-border rounded-lg bg-card"><ErrorBox error={movers.error} onRetry={() => movers.refetch()} title="Could not load market movers" /></div>
       ) : m && m.reason && m.universe_size === 0 ? (
         <InfoBanner>{m.reason}</InfoBanner>
       ) : m ? (
@@ -113,13 +114,13 @@ const Movers = () => {
           {m.partial && <InfoBanner tone="warn">Some price batches could not be fetched; showing a partial ranking ({m.batches_failed} batch(es) failed).</InfoBanner>}
           <div className="grid md:grid-cols-2 gap-6">
             <div>
-              <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-1.5">
+              <h3 className="text-lg font-medium text-foreground mb-4 flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-chart-up" aria-hidden /> Top Gainers
               </h3>
               <MoverList items={m.gainers} up />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-1.5">
+              <h3 className="text-lg font-medium text-foreground mb-4 flex items-center gap-2">
                 <TrendingDown className="w-4 h-4 text-chart-down" aria-hidden /> Top Losers
               </h3>
               <MoverList items={m.losers} up={false} />
@@ -155,30 +156,32 @@ const Index = () => {
   return (
     <Layout title="Discover">
       <div>
-        <section className="py-16 px-4 border-b border-border">
-          <div className="container mx-auto text-center space-y-5">
-            <div className="flex items-center justify-center gap-1.5 mb-3">
-              <Sparkles className="w-4 h-4 text-primary" aria-hidden />
-              <span className="text-[11px] font-medium text-primary uppercase tracking-wider">Equity research for Indian listed companies</span>
-            </div>
-            <h1 className="text-3xl md:text-4xl font-bold text-foreground leading-tight">
+        <section className="pt-6 px-4">
+          <div className="container mx-auto px-4">
+          <div className="surface-peach text-center space-y-8 py-16 md:py-24 px-6">
+            <Reveal className="flex items-center justify-center gap-2 mb-2">
+              <Sparkles className="w-4 h-4 text-sienna" aria-hidden />
+              <span className="metric-label text-sienna">Equity research for Indian listed companies</span>
+            </Reveal>
+            <Reveal as="h1" delay={80} className="display-serif text-5xl sm:text-6xl md:text-7xl lg:text-[90px] text-sienna">
               Source-linked equity research
               <br />
-              <span className="text-primary">for NSE-listed companies</span>
-            </h1>
-            <p className="text-muted-foreground max-w-lg mx-auto text-sm leading-relaxed">
+              <em className="italic">for NSE-listed companies</em>
+            </Reveal>
+            <Reveal as="p" delay={200} className="text-sienna max-w-xl mx-auto text-base md:text-lg leading-snug">
               {intro}
-            </p>
+            </Reveal>
 
-            <div className="pt-2">
+            <Reveal delay={320} className="pt-4">
               <SearchBar />
-            </div>
+            </Reveal>
 
             {offered.length > 0 && (
-              <div className="flex items-center justify-center gap-6 text-muted-foreground text-xs pt-2">
+              <div className="flex items-center justify-center gap-6 text-sienna text-sm pt-2">
                 <div className="flex items-center gap-1"><BarChart3 className="w-3.5 h-3.5" aria-hidden /> Every figure shows its source</div>
               </div>
             )}
+          </div>
           </div>
         </section>
 

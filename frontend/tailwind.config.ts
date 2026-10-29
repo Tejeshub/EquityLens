@@ -8,14 +8,18 @@ export default {
   theme: {
     container: {
       center: true,
-      padding: "2rem",
+      padding: "1.5rem",
       screens: {
-        "2xl": "1400px",
+        sm: "640px",
+        md: "768px",
+        lg: "1024px",
+        xl: "1200px",
       },
     },
     extend: {
       fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"],
+        sans: ["\"Inter Variable\"", "Inter", "system-ui", "sans-serif"],
+        serif: ["\"Source Serif 4 Variable\"", "\"Source Serif 4\"", "Georgia", "serif"],
         mono: ["JetBrains Mono", "monospace"],
       },
       colors: {
@@ -64,6 +68,9 @@ export default {
           DEFAULT: "hsl(var(--info))",
           foreground: "hsl(var(--info-foreground))",
         },
+        fog: "hsl(var(--fog))",
+        peach: "hsl(var(--peach))",
+        sienna: "hsl(var(--sienna))",
         "chart-up": "hsl(var(--chart-up))",
         "chart-down": "hsl(var(--chart-down))",
         "confidence-high": "hsl(var(--confidence-high))",
@@ -85,9 +92,13 @@ export default {
         },
       },
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        lg: "var(--radius)", // 24px cards
+        md: "calc(var(--radius) - 8px)", // 16px inputs / small cards
+        sm: "calc(var(--radius) - 12px)", // 12px
+      },
+      boxShadow: {
+        float: "var(--shadow-float)",
+        pop: "var(--shadow-pop)",
       },
       keyframes: {
         "accordion-down": {

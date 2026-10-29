@@ -16,9 +16,9 @@ const ComparisonTable = ({ data }: { data: CompareResponse }) => {
   const periods = new Set(data.companies.filter((c) => c.status === "ok" && c.period).map((c) => c.period));
   const periodsDiffer = periods.size > 1;
   return (
-    <div className="border border-border rounded-md bg-card">
+    <div className="border border-border rounded-lg bg-card">
       <div className="px-4 py-3 border-b border-border">
-        <h3 className="text-sm font-semibold text-foreground">Reported metrics comparison</h3>
+        <h3 className="text-base font-medium text-foreground">Reported metrics comparison</h3>
         <p className="text-[11px] text-muted-foreground mt-0.5">
           {STATEMENT_LABELS[data.statement] ?? data.statement.replace(/_/g, " ")}
           {data.period ? ` · period ${data.period}` : periodsDiffer ? " · latest period differs between companies" : ""}.
@@ -41,7 +41,7 @@ const ComparisonTable = ({ data }: { data: CompareResponse }) => {
                       <span
                         data-testid={`status-${c.company_id}`}
                         title={ok ? undefined : reasonText(c.reason)}
-                        className={`inline-block mt-1 normal-case px-1.5 py-0.5 rounded text-[10px] font-medium ${ok ? "bg-secondary text-secondary-foreground" : "bg-warning/15 text-warning"}`}
+                        className={`inline-block mt-1 normal-case px-1.5 py-0.5 rounded-full text-[10px] font-medium ${ok ? "bg-secondary text-secondary-foreground" : "bg-warning/15 text-warning"}`}
                       >
                         {ok ? "Data available" : "Unavailable"}
                       </span>

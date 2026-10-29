@@ -34,25 +34,25 @@ const Analysis = ({ id }: { id: string }) => {
 
   return (
     <Layout title={watchlist ? `Compare ${watchlist.name}` : "Compare watchlist"}>
-      <div className="container mx-auto px-4 py-5">
+      <div className="container mx-auto px-4 py-10">
         <button onClick={() => navigate("/watchlists")} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground mb-3">
           <ArrowLeft className="w-3.5 h-3.5" aria-hidden /> Back to Watchlists
         </button>
 
         {lists.isPending ? (
-          <LoadingBox label="Loading watchlist…" />
+          <LoadingBox label="Loading watchlist…" variant="list" />
         ) : lists.isError ? (
-          <div className="border border-border rounded-md bg-card"><ErrorBox error={lists.error} onRetry={() => lists.refetch()} title="Could not load watchlist" /></div>
+          <div className="border border-border rounded-lg bg-card"><ErrorBox error={lists.error} onRetry={() => lists.refetch()} title="Could not load watchlist" /></div>
         ) : !watchlist ? (
-          <div className="border border-border rounded-md bg-card p-8 text-center" role="alert">
-            <h1 className="text-lg font-bold text-foreground">Watchlist not found</h1>
+          <div className="border border-border rounded-lg bg-card p-8 text-center" role="alert">
+            <h1 className="text-3xl md:text-4xl text-foreground">Watchlist not found</h1>
             <p className="text-xs text-muted-foreground mt-1">This watchlist does not exist or is not yours.</p>
           </div>
         ) : (
           <>
             <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
               <div>
-                <h1 className="text-xl font-bold text-foreground">{watchlist.name}</h1>
+                <h1 className="text-3xl md:text-4xl text-foreground">{watchlist.name}</h1>
                 <p className="text-xs text-muted-foreground">Comparison of reported metrics · {watchlist.items.length} companies</p>
               </div>
               {!disabled && (
@@ -65,7 +65,7 @@ const Analysis = ({ id }: { id: string }) => {
                     </select>
                   </label>
                   <button onClick={() => compare.mutate(statement)} disabled={compare.isPending || watchlist.items.length < 2 || fundamentals.state !== "enabled"}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed">
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed">
                     {compare.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
                     {compare.data ? "Refresh comparison" : "Run comparison"}
                   </button>
@@ -75,10 +75,10 @@ const Analysis = ({ id }: { id: string }) => {
 
             {disabled && <SourceDisabledNotice title="Comparison is not available" reason={fundamentals.reason} />}
             {!disabled && watchlist.items.length < 2 && <InfoBanner>Add at least two companies to this watchlist to compare them.</InfoBanner>}
-            {compare.isPending && <LoadingBox label="Fetching reported metrics. This can take a while…" />}
+            {compare.isPending && <LoadingBox label="Fetching reported metrics. This can take a while…" variant="table" />}
             {err && (missing
               ? <InfoBanner tone="warn">The comparison service is not available on this backend yet.</InfoBanner>
-              : <div className="border border-border rounded-md bg-card"><ErrorBox error={err} title="Comparison failed" /></div>)}
+              : <div className="border border-border rounded-lg bg-card"><ErrorBox error={err} title="Comparison failed" /></div>)}
             {compare.data && <ComparisonTable data={compare.data} />}
             {!disabled && !compare.data && !compare.isPending && !err && watchlist.items.length >= 2 && (
               <p className="text-xs text-muted-foreground">Nothing has been fetched yet. Press "Run comparison" to load reported metrics for these companies.</p>

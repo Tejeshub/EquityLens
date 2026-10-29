@@ -26,11 +26,11 @@ const CompanyOverview = ({ company, quote }: { company: Company; quote: UseQuery
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="text-xl font-bold text-foreground">{company.name}</h1>
+          <h1 className="text-3xl md:text-4xl text-foreground">{company.name}</h1>
           <div className="flex flex-wrap items-center gap-2 mt-1">
             <span className="text-xs font-mono text-muted-foreground">{company.primary_symbol}</span>
-            <span className="text-[11px] px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground">{company.exchange}</span>
-            {company.sector && <span className="text-[11px] px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground">{company.sector}</span>}
+            <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-secondary text-secondary-foreground">{company.exchange}</span>
+            {company.sector && <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-secondary text-secondary-foreground">{company.sector}</span>}
             {company.isin && <span className="text-[11px] font-mono text-muted-foreground">{company.isin}</span>}
           </div>
         </div>

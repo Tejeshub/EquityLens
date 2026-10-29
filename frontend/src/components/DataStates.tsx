@@ -2,12 +2,59 @@ import type { ReactNode } from "react";
 import { AlertCircle, Info, Loader2, Clock } from "lucide-react";
 import { ApiError, describeError } from "@/services/api";
 import { fmtDateTime } from "@/lib/format";
+import { Skeleton } from "@/components/ui/skeleton";
 
-export const LoadingBox = ({ label = "Loading…" }: { label?: string }) => (
-  <div className="flex items-center justify-center gap-2 p-8 text-xs text-muted-foreground" role="status" aria-live="polite">
-    <Loader2 className="w-4 h-4 animate-spin text-primary" /> {label}
-  </div>
-);
+// Fixed heights so the skeleton looks the same on every load (no random values).
+const CANDLES = [38, 46, 42, 55, 50, 62, 58, 48, 56, 66, 60, 72, 68, 58, 64, 76, 70, 82, 74, 68, 78, 86, 80, 90];
+
+const SkeletonShape = ({ variant }: { variant: "chart" | "list" | "table" }) => {
+  if (variant === "chart") {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-end gap-1.5 h-[240px]">
+          {CANDLES.map((h, i) => <Skeleton key={i} className="flex-1 rounded-sm" style={{ height: `${h}%` }} />)}
+        </div>
+        <Skeleton className="h-12 w-full rounded-sm" />
+      </div>
+    );
+  }
+  if (variant === "table") {
+    return (
+      <div className="space-y-3">
+        <Skeleton className="h-4 w-2/5" />
+        {[0, 1, 2, 3, 4].map((r) => (
+          <div key={r} className="grid grid-cols-4 gap-4">
+            {[0, 1, 2, 3].map((c) => <Skeleton key={c} className={`h-5 ${c === 0 ? "col-span-1" : ""}`} />)}
+          </div>
+        ))}
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-4">
+      {[0, 1, 2, 3].map((r) => (
+        <div key={r} className="flex items-center gap-3">
+          <Skeleton className="w-9 h-9 rounded-full flex-shrink-0" />
+          <div className="flex-1 space-y-2"><Skeleton className="h-3.5 w-3/5" /><Skeleton className="h-3 w-2/5" /></div>
+          <Skeleton className="h-4 w-14" />
+        </div>
+      ))}
+    </div>
+  );
+};
+
+/** Loading state. The default is a small spinner; chart / list / table show a skeleton shaped like the content that is coming. */
+export const LoadingBox = ({ label = "Loading…", variant = "spinner" }: { label?: string; variant?: "spinner" | "chart" | "list" | "table" }) =>
+  variant === "spinner" ? (
+    <div className="flex items-center justify-center gap-2 p-8 text-xs text-muted-foreground" role="status" aria-live="polite">
+      <Loader2 className="w-4 h-4 animate-spin text-primary" /> {label}
+    </div>
+  ) : (
+    <div className="p-5" role="status" aria-live="polite" aria-busy="true">
+      <span className="sr-only">{label}</span>
+      <div aria-hidden><SkeletonShape variant={variant} /></div>
+    </div>
+  );
 
 export const EmptyBox = ({ title, children }: { title: string; children?: ReactNode }) => (
   <div className="p-6 text-center">

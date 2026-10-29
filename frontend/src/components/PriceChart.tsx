@@ -72,21 +72,21 @@ const PriceChart = ({ companyId }: { companyId: string }) => {
 
   if (market.state !== "enabled") {
     return (
-      <div className="border border-border rounded-md p-4 bg-card space-y-2">
-        <h3 className="text-sm font-semibold text-foreground">Price Chart</h3>
+      <div className="border border-border rounded-lg p-5 bg-card space-y-2">
+        <h3 className="text-base font-medium text-foreground">Price Chart</h3>
         {market.state === "disabled" ? <SourceDisabledNotice title="Price charts are not shown" reason={market.reason} /> : <LoadingBox label="Loading…" />}
       </div>
     );
   }
 
   return (
-    <div className="border border-border rounded-md p-4 bg-card">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-foreground">Price Chart ({label}, daily candles)</h3>
-        <div className="flex gap-0.5" role="group" aria-label="Chart range">
+    <div className="border border-border rounded-lg p-5 bg-card">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <h3 className="font-serif text-xl font-normal text-foreground">Price Chart ({label}, daily candles)</h3>
+        <div className="flex gap-1" role="group" aria-label="Chart range">
           {RANGES.map((r) => (
             <button key={r.value} aria-pressed={range === r.value} onClick={() => setRange(r.value)}
-              className={`px-2 py-0.5 text-[11px] rounded font-medium ${range === r.value ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"}`}>
+              className={`px-3 py-1 text-xs rounded-full transition-colors duration-200 ${range === r.value ? "bg-peach text-sienna" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
               {r.label}
             </button>
           ))}
@@ -96,26 +96,26 @@ const PriceChart = ({ companyId }: { companyId: string }) => {
       {history.isError ? (
         <ErrorBox error={history.error} onRetry={() => history.refetch()} title="Price history unavailable" />
       ) : history.isPending ? (
-        <LoadingBox label="Loading price history…" />
+        <LoadingBox label="Loading price history…" variant="chart" />
       ) : data.length === 0 ? (
         <EmptyBox title="No price history for this range">The data source returned no bars for this company and range.</EmptyBox>
       ) : (
         <>
           {history.data?.provenance.stale && <div className="mb-2"><InfoBanner tone="warn">Price history is stale.</InfoBanner></div>}
-          <div className={history.isFetching ? "opacity-60 transition-opacity" : ""} role="img" aria-label={chartLabel}>
+          <div className={`chart-wipe ${history.isFetching ? "opacity-60 transition-opacity" : ""}`} role="img" aria-label={chartLabel}>
             <ResponsiveContainer width="100%" height={240}>
               <ComposedChart data={data}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(220 13% 93%)" />
-                <XAxis dataKey="date" tick={{ fontSize: 10, fill: "hsl(220 10% 55%)" }} tickFormatter={(v: string) => v.slice(range === "5y" || range === "1y" ? 0 : 5, range === "5y" || range === "1y" ? 7 : 10)} minTickGap={24} />
-                <YAxis domain={["auto", "auto"]} tick={{ fontSize: 10, fill: "hsl(220 10% 55%)" }} tickFormatter={(v: number) => v.toFixed(decimals)} width={decimals > 1 ? 56 : 48} />
+                <CartesianGrid vertical={false} stroke="hsl(240 8% 92%)" />
+                <XAxis dataKey="date" axisLine={false} tickLine={false} tickMargin={8} tick={{ fontSize: 11, fill: "hsl(228 7% 40%)" }} tickFormatter={(v: string) => v.slice(range === "5y" || range === "1y" ? 0 : 5, range === "5y" || range === "1y" ? 7 : 10)} minTickGap={24} />
+                <YAxis domain={["auto", "auto"]} axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "hsl(228 7% 40%)" }} tickFormatter={(v: number) => v.toFixed(decimals)} width={decimals > 1 ? 56 : 48} />
                 <Tooltip
-                  contentStyle={{ backgroundColor: "hsl(0 0% 100%)", border: "1px solid hsl(220 13% 91%)", borderRadius: "6px", fontSize: "12px" }}
+                  cursor={{ fill: "hsl(22 85% 89% / 0.45)" }}
                   content={({ active, payload }) => {
                     const p = active && payload?.[0]?.payload as OhlcBar | undefined;
                     if (!p) return null;
                     return (
-                      <div className="bg-card border border-border rounded-md p-2 text-[11px] font-mono shadow-sm">
-                        <p className="font-semibold">{p.date}</p>
+                      <div className="bg-card rounded-md p-3 text-xs font-mono shadow-float">
+                        <p className="font-medium mb-1">{p.date}</p>
                         <p>O {fmtNumber(p.open)} H {fmtNumber(p.high)}</p>
                         <p>L {fmtNumber(p.low)} C {fmtNumber(p.close)}</p>
                         <p>Vol {fmtVolume(p.volume)}</p>
@@ -130,7 +130,7 @@ const PriceChart = ({ companyId }: { companyId: string }) => {
               <ComposedChart data={data.map((d) => ({ date: d.date, volume: d.volume ?? undefined }))}>
                 <XAxis dataKey="date" hide />
                 <YAxis hide />
-                <Bar dataKey="volume" fill="hsl(220 14% 80%)" isAnimationActive={false} />
+                <Bar dataKey="volume" fill="hsl(22 85% 89%)" radius={[2, 2, 0, 0]} isAnimationActive={false} />
               </ComposedChart>
             </ResponsiveContainer>
           </div>

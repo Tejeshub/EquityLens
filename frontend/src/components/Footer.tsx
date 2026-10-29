@@ -21,8 +21,8 @@ const Footer = () => {
     ? [!data.market_data.enabled && "market prices", !data.fundamentals.enabled && "reported financials", !data.index_segments.enabled && "sector and segment labels", !data.news.enabled && "news"].filter(Boolean) as string[]
     : [];
   return (
-    <footer className="border-t border-border bg-card px-4 py-4 text-[11px] text-muted-foreground">
-      <div className="container mx-auto space-y-1">
+    <footer className="mt-16 bg-peach/30 py-10 text-xs text-muted-foreground">
+      <div className="container mx-auto space-y-2">
         <p className="font-medium text-foreground">Informational only — not investment advice. AI-generated content can be wrong.</p>
         {data && (
           <p data-testid="source-attribution">

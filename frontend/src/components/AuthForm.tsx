@@ -62,22 +62,22 @@ const AuthForm = ({ mode, onSubmit }: Props) => {
   };
 
   const title = mode === "login" ? "Sign in" : "Create account";
-  const inputCls = "w-full bg-card border border-border rounded-md px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary/30 text-foreground";
+  const inputCls = "w-full bg-card border border-input rounded-md px-4 py-3 text-sm outline-none transition-shadow focus:border-foreground focus:ring-2 focus:ring-foreground/10 text-foreground placeholder:text-muted-foreground";
 
   return (
-    <main className="flex-1 min-h-screen bg-background flex items-center justify-center px-4">
-      <div className="w-full max-w-sm">
-        <div className="flex items-center justify-center gap-2 mb-6">
-          <div className="w-7 h-7 rounded bg-primary flex items-center justify-center">
-            <TrendingUp className="w-3.5 h-3.5 text-primary-foreground" />
+    <main className="flex-1 min-h-screen bg-peach/40 flex items-center justify-center px-4 py-12">
+      <div className="w-full max-w-md">
+        <div className="flex items-center justify-center gap-2 mb-8">
+          <div className="w-9 h-9 rounded-full bg-sienna flex items-center justify-center">
+            <TrendingUp className="w-4 h-4 text-peach" />
           </div>
-          <span className="text-base font-bold text-foreground">EquityLens</span>
+          <span className="font-serif text-2xl tracking-tight text-foreground">EquityLens</span>
         </div>
-        <form onSubmit={handle} noValidate className="border border-border rounded-md bg-card p-5 space-y-4" aria-label={title}>
-          <h1 className="text-lg font-bold text-foreground">{title}</h1>
+        <form onSubmit={handle} noValidate className="surface-float p-8 space-y-5" aria-label={title}>
+          <h1 className="font-serif text-3xl text-foreground">{title}</h1>
 
           {formError && (
-            <div role="alert" className="border border-chart-down/50 bg-chart-down/8 text-chart-down text-xs rounded-md p-2.5">{formError}</div>
+            <div role="alert" className="border border-chart-down/50 bg-chart-down/8 text-chart-down text-xs rounded-md p-3">{formError}</div>
           )}
 
           <div>
@@ -104,13 +104,13 @@ const AuthForm = ({ mode, onSubmit }: Props) => {
           </div>
 
           <button type="submit" disabled={submitting}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 disabled:opacity-60 disabled:cursor-not-allowed transition-colors">
+            className="w-full h-11 flex items-center justify-center gap-2 px-5 bg-primary text-primary-foreground rounded-full text-sm hover:bg-primary/85 disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-200">
             {submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
             {submitting ? "Please wait…" : title}
           </button>
 
           <p className="text-xs text-muted-foreground text-center">
-            {mode === "login" ? (<>No account? <Link to="/register" className="text-primary underline">Create one</Link></>) : (<>Already registered? <Link to="/login" className="text-primary underline">Sign in</Link></>)}
+            {mode === "login" ? (<>No account? <Link to="/register" className="text-foreground underline underline-offset-4 hover:no-underline">Create one</Link></>) : (<>Already registered? <Link to="/login" className="text-foreground underline underline-offset-4 hover:no-underline">Sign in</Link></>)}
           </p>
         </form>
       </div>

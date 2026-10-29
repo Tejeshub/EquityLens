@@ -35,13 +35,13 @@ const FinancialTable = ({ companyId }: { companyId: string }) => {
   const sourceUrl = safeHttpUrl(d?.source_url);
 
   return (
-    <div className="border border-border rounded-md bg-card">
+    <div className="border border-border rounded-lg bg-card">
       <div className="px-4 py-3 border-b border-border flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold text-foreground">Reported Financials</h3>
+        <h3 className="text-base font-medium text-foreground">Reported Financials</h3>
         {source.state !== "disabled" && <div className="flex flex-wrap gap-1" role="tablist" aria-label="Statement">
           {STATEMENTS.map((s) => (
             <button key={s.value} role="tab" aria-selected={statement === s.value} onClick={() => setStatement(s.value)}
-              className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${statement === s.value ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-accent"}`}>
+              className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${statement === s.value ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-accent"}`}>
               {s.label}
             </button>
           ))}
@@ -51,7 +51,7 @@ const FinancialTable = ({ companyId }: { companyId: string }) => {
       {source.state === "disabled" ? (
         <div className="p-4"><SourceDisabledNotice title="Reported financials are not shown" reason={source.reason} /></div>
       ) : fin.isPending ? (
-        <LoadingBox label="Loading financials…" />
+        <LoadingBox label="Loading financials…" variant="table" />
       ) : notCovered ? (
         <EmptyBox title="Not covered by the current source">The current financial-data source does not cover this company.</EmptyBox>
       ) : fin.isError ? (
