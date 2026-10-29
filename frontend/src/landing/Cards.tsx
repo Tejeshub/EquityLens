@@ -172,3 +172,42 @@ export const WorkspacePreview = () => (
     </div>
   </div>
 );
+
+/** Research Insight card for editorial deep research */
+export const ResearchInsightCard = () => (
+  <div className="space-y-3">
+    <div className="flex items-center justify-between">
+      <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">AI Research Verdict</span>
+      <span className="text-[10px] px-2 py-0.5 rounded-full bg-peach text-sienna font-medium">Verified Sources</span>
+    </div>
+    <div className="flex items-baseline justify-between border-b border-border pb-2">
+      <div>
+        <p className="text-base font-medium text-foreground">Margin Expansion Drivers</p>
+        <p className="text-xs text-muted-foreground">Consensus analysis from 4 quarterly filings</p>
+      </div>
+      <span className="font-mono text-sm text-chart-up">+240 bps</span>
+    </div>
+    <p className="text-xs text-muted-foreground leading-relaxed">
+      Operating leverage sustained by raw material cost cooling and export realization improvements.
+    </p>
+    <div className="flex items-center gap-2 pt-1">
+      <div className="w-2 h-2 rounded-full bg-chart-up" />
+      <span className="text-[11px] font-mono text-muted-foreground">Confidence Score: 94/100 · 6 audited citations</span>
+    </div>
+  </div>
+);
+
+/** Metric Highlight Card */
+export const MetricHighlightCard = ({ title, value, unit, delta, note }: { title: string; value: number; unit?: string; delta: number; note: string }) => (
+  <>
+    <CardHead title={title} />
+    <p className="font-serif text-3xl text-foreground tracking-tight">
+      <CountUp to={value} decimals={1} suffix={unit ? <span className="text-xl ml-0.5">{unit}</span> : undefined} delay={400} />
+    </p>
+    <div className="flex items-center gap-2 mt-1">
+      <Delta value={delta} />
+      <span className="text-xs text-muted-foreground truncate">{note}</span>
+    </div>
+  </>
+);
+
